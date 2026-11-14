@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# INNER Muebles
 
-## Getting Started
+App web para carpinteros que fabrican en melamina: diseñan muebles con medidas reales y obtienen al instante la lista de cortes, las láminas optimizadas, los herrajes, la cotización con sus propios precios, los planos de armado paso a paso y los PDF listos para el cliente y para el proveedor que corta.
 
-First, run the development server:
+Los muebles **no son imágenes**: cada uno es una función en código (`src/lib/motor/catalogo.ts`) que convierte medidas en piezas. El cálculo es 100 % determinista. La única IA es la transcripción de notas de voz.
+
+## Rutas
+
+| Ruta | Qué es |
+|---|---|
+| `/` | Landing de venta (respuesta directa) con botón al checkout de Hotmart |
+| `/app` | La aplicación (funciona en celular y computador) |
+| `/api/voz` | Transcribe notas de voz con OpenAI |
+
+## Estructura
+
+- `src/lib/motor/` motor de cálculo puro (sin React): catálogo paramétrico, optimizador de láminas (MaxRects con sierra y refilado), cálculo de proyecto y cotización.
+- `src/lib/voz/interpretar.ts` convierte el texto dictado ("bajo de cocina de 80 de ancho con dos puertas") en valores del formulario, con reglas en español.
+- `src/lib/pdf.ts` genera los PDF con jsPDF: orden de corte para el proveedor, cotización y planos.
+- `src/components/` interfaz.
+
+### Agregar un mueble al catálogo
+
+Crea una `DefinicionMueble` en `catalogo.ts` con sus `parametros` y una función `generar` que use `Constructor` (`caja`, `entrepanos`, `puertas`, `cajones`, `pieza`, `herraje`, `paso`). Agrégala a `CATALOGO` y aparece en la app, en los PDF y en la voz (añade su palabra clave en `MUEBLES` de `interpretar.ts`).
+
+## Desarrollo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # y completa las claves
+npm run dev                  # http://localhost:3000
+npm run prueba               # pruebas rápidas del motor y del intérprete de voz
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Despliegue en Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Importa este repo en Vercel (framework Next.js, sin cambios).
+2. Variables de entorno: `NEXT_PUBLIC_CHECKOUT_URL` (link de pago de Hotmart), `OPENAI_API_KEY`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Pendiente (siguiente fase)
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Cuentas con Supabase y activación de la suscripción con el webhook de Hotmart (hoy los datos se guardan en el dispositivo).
+- Proteger `/api/voz` para que solo lo usen suscriptores.
+- Renders con IA pagados con créditos prepagados.
