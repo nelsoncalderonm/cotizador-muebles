@@ -1,7 +1,7 @@
 // Modelo 3D del mueble a partir del resultado del motor: cada pieza como un bloque con espesor y profundidad reales.
 // Ejes: x a la derecha, y hacia arriba, z hacia el frente (la cara trasera del mueble está en z = 0). Medidas en mm.
 
-import { esPuerta as idPuerta } from "./constructor";
+import { bisagrasPorPuerta, esPuerta as idPuerta } from "./constructor";
 import type { Configuracion, ResultadoMueble } from "./tipos";
 
 export type TipoBloque = "cuerpo" | "frente" | "fondo" | "metal";
@@ -108,6 +108,15 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
             const yCentro =
               r.y > 900 ? r.y + 70 + largo / 2 : r.y + r.h > 1400 ? r.y + Math.min(r.h / 2, 1050 - r.y) : r.y + r.h - 70 - largo / 2;
             bloques.push({ piezaId: "jaladera", tipo: "metal", forma: "caja", x, y: yCentro - largo / 2, z: F + eF, w: JALADERA.grosor, h: largo, d: JALADERA.salida, padre: idx });
+            // bisagras de cazoleta: brazo en la puerta y base en el lateral (se ven al abrir)
+            const nb = bisagrasPorPuerta(r.h);
+            for (let k = 0; k < nb; k++) {
+              const yb = r.y + 90 + ((r.h - 180) * k) / (nb - 1) - 22;
+              const xb = bisagra === "izq" ? r.x + 6 : r.x + r.w - 6 - 52;
+              bloques.push({ piezaId: "bisagra", tipo: "metal", forma: "caja", x: xb, y: yb, z: F - 14, w: 52, h: 44, d: 14, padre: idx });
+              const xl = bisagra === "izq" ? r.x + e - 2 : r.x + r.w - e + 2 - 3;
+              bloques.push({ piezaId: "bisagra", tipo: "metal", forma: "caja", x: xl, y: yb + 4, z: F - 62, w: 3, h: 36, d: 46 });
+            }
           } else {
             const largo = Math.min(JALADERA.largo * 1.5, r.w * 0.5);
             bloques.push({ piezaId: "jaladera", tipo: "metal", forma: "caja", x: r.x + r.w / 2 - largo / 2, y: r.y + r.h - Math.min(45, r.h / 3), z: F + eF, w: largo, h: JALADERA.grosor, d: JALADERA.salida, padre: idx });
@@ -120,6 +129,9 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
             parte(xi + e, yi, zi, wi - 2 * e, hi, e);
             parte(xi + e, yi, zi + di - e, wi - 2 * e, hi, e);
             parte(xi, yi - eFondo, zi, wi, eFondo, di);
+            // correderas telescópicas a los lados de la caja
+            for (const xc of [xi - 12.5, xi + wi])
+              bloques.push({ piezaId: "corredera", tipo: "metal", forma: "caja", x: xc, y: yi + hi / 2 - 22, z: zi + 10, w: 12.5, h: 44, d: di - 20, padre: idx });
           }
         } else if (r.piezaId.startsWith("entrepano") && r.piezaId !== "entrepano_fijo") {
           caja(z0, F - z0 - 20);

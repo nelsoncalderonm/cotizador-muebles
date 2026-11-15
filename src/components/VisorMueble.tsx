@@ -84,6 +84,21 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
       /* sin almacenamiento */
     }
   };
+  const [decorar, setDecorar] = useState(() => {
+    try {
+      return localStorage.getItem("inner-muebles:decorar") !== "no";
+    } catch {
+      return true;
+    }
+  });
+  const cambiarDecorar = () => {
+    setDecorar(!decorar);
+    try {
+      localStorage.setItem("inner-muebles:decorar", decorar ? "no" : "si");
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
   const capturar = useRef<(() => Blob | null) | null>(null);
   const acabados = item.acabados ?? ACABADOS_DEFECTO;
   const fondo = Number(item.valores.fondo ?? 500);
@@ -114,7 +129,7 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
   return (
     <div className="visor">
       {modo === "3d" ? (
-        <Vista3D modelo={modelo} acabados={acabados} abierto={abierto} escenario={escenario} onListo={(f) => (capturar.current = f)} />
+        <Vista3D modelo={modelo} acabados={acabados} abierto={abierto} escenario={escenario} mueble={item.muebleId} decorar={decorar} onListo={(f) => (capturar.current = f)} />
       ) : (
         <div className="visor-plano">
           <VistaMueble vista={res.vista} />
@@ -128,6 +143,12 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
             </button>
           ))}
         </div>
+      )}
+      {modo === "3d" && (
+        <button className={`visor-decorar${decorar ? " activo" : ""}`} onClick={cambiarDecorar} aria-pressed={decorar} title="Mostrar u ocultar la decoración (no entra en la cotización)">
+          <i aria-hidden>{decorar ? "✓" : ""}</i>
+          Decoración
+        </button>
       )}
       <div className="visor-barra">
         <div className="segmentos visor-modo">

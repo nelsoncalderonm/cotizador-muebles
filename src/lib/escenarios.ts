@@ -42,8 +42,8 @@ function texturaPisoMadera() {
         let x = -azar() * 600;
         while (x < 1024) {
           const largo = 500 + azar() * 500;
-          const tono = 150 + azar() * 40;
-          g.fillStyle = `rgb(${tono}, ${tono * 0.72}, ${tono * 0.48})`;
+          const tono = 138 + azar() * 34;
+          g.fillStyle = `rgb(${tono}, ${tono * 0.76}, ${tono * 0.56})`;
           g.fillRect(x, i * alto, largo, alto);
           g.globalAlpha = 0.18;
           for (let k = 0; k < 14; k++) {
@@ -78,15 +78,15 @@ function texturaPisoBaldosa() {
       const t = 1024 / n;
       for (let i = 0; i < n; i++)
         for (let j = 0; j < n; j++) {
-          const tono = 214 + azar() * 10;
-          g.fillStyle = `rgb(${tono}, ${tono - 4}, ${tono - 10})`;
+          const tono = 186 + azar() * 10;
+          g.fillStyle = `rgb(${tono}, ${tono - 6}, ${tono - 16})`;
           g.fillRect(i * t, j * t, t, t);
           for (let k = 0; k < 900; k++) {
             g.fillStyle = `rgba(120,110,100,${azar() * 0.08})`;
             g.fillRect(i * t + azar() * t, j * t + azar() * t, 2 + azar() * 6, 1 + azar() * 3);
           }
         }
-      g.fillStyle = "#b9b2a8";
+      g.fillStyle = "#9c948a";
       for (let i = 0; i <= n; i++) {
         g.fillRect(i * t - 2, 0, 4, 1024);
         g.fillRect(0, i * t - 2, 1024, 4);
@@ -208,12 +208,12 @@ function baseHabitacion(colorPared: string, piso: THREE.Texture | string, colorR
   const g = new THREE.Group();
   const matPiso =
     typeof piso === "string" ? new THREE.MeshStandardMaterial({ color: piso, roughness: 0.85 }) : new THREE.MeshStandardMaterial({ map: piso, roughness: 0.55 });
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), matPiso);
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(14, 14, 28, 28), matPiso);
   p.rotation.x = -Math.PI / 2;
   p.position.z = 7;
   p.receiveShadow = true;
   g.add(p);
-  const pared = new THREE.Mesh(new THREE.PlaneGeometry(14, 6), new THREE.MeshStandardMaterial({ color: colorPared, roughness: 0.95 }));
+  const pared = new THREE.Mesh(new THREE.PlaneGeometry(14, 6, 28, 12), new THREE.MeshStandardMaterial({ color: colorPared, roughness: 0.95 }));
   pared.position.set(0, 3, -0.004);
   pared.receiveShadow = true;
   g.add(pared);
@@ -228,7 +228,7 @@ export function crearEscenario(tipo: Escenario, anchoMueble: number, altoMueble:
   const W = anchoMueble;
   const lado = W / 2 + 0.35;
   if (tipo === "habitacion") {
-    const g = baseHabitacion("#e6dbcd", texturaPisoMadera(), "#f4efe8");
+    const g = baseHabitacion("#e3ddd3", texturaPisoMadera(), "#f4efe8");
     // cama a la derecha, cabecera contra la pared
     const anchoCama = 1.4, largoCama = 1.95;
     const xc = lado + anchoCama / 2 + 0.75;
@@ -248,10 +248,10 @@ export function crearEscenario(tipo: Escenario, anchoMueble: number, altoMueble:
     // planta y cuadro a la izquierda
     g.add(planta(-lado - 0.45, 0.3, 1.0));
     g.add(cuadro(-lado - 0.45, Math.max(1.5, altoMueble * 0.75), 0.6, 0.8, ["#c98b5e", "#7a8f84", "#e2c7a4"]));
-    return { grupo: g, fondo: "#e6dbcd" };
+    return { grupo: g, fondo: "#e3ddd3" };
   }
   if (tipo === "sala") {
-    const g = baseHabitacion("#d6dbd3", texturaPisoBaldosa(), "#eceee9");
+    const g = baseHabitacion("#d9d6cd", texturaPisoBaldosa(), "#f1f1ec");
     // sofá a la izquierda
     const anchoSofa = 2.0, prof = 0.9;
     const xs = -(lado + anchoSofa / 2 + 0.35);
@@ -301,7 +301,7 @@ export function crearEscenario(tipo: Escenario, anchoMueble: number, altoMueble:
     g.add(pantalla);
     g.add(planta(xl + 0.5, 0.3, 1.25));
     g.add(cuadro(xs, 1.55, 1.1, 0.7, ["#3f5e6b", "#d9a066", "#9fb0a3"]));
-    return { grupo: g, fondo: "#d6dbd3" };
+    return { grupo: g, fondo: "#d9d6cd" };
   }
   const g = baseHabitacion("#efebe5", "#cfc6b8", "#f6f4f0");
   return { grupo: g, fondo: "#e8e4de" };
