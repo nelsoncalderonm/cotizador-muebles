@@ -2,6 +2,7 @@
 
 import { useEstado } from "@/lib/estado";
 import { NOMBRES_PRECIO_HERRAJE } from "@/lib/motor/defaults";
+import { useCuenta } from "@/lib/cuenta";
 import { enlaceSoporte } from "@/lib/soporte";
 import type { ClaveMaterial } from "@/lib/motor/tipos";
 
@@ -19,6 +20,7 @@ function Num({ etiqueta, valor, onCambio, sufijo }: { etiqueta: string; valor: n
 
 export function PanelPrecios() {
   const { config, setConfig, precios, setPrecios, taller, setTaller, repetirConfiguracion } = useEstado();
+  const { activas, correo, cuenta, salir } = useCuenta();
   const claves: ClaveMaterial[] = ["cuerpo", "frente", "fondo"];
   return (
     <div className="panel">
@@ -144,6 +146,25 @@ export function PanelPrecios() {
           Soporte por WhatsApp
         </a>
       </div>
+
+      {activas && correo && (
+        <div className="ayuda-soporte">
+          <span>
+            <b>Mi cuenta</b>
+            <small>{correo}</small>
+          </span>
+          <span className="cuenta-acciones">
+            {cuenta?.es_dueno && (
+              <a className="btn-sec" href="/admin">
+                Panel de dueños
+              </a>
+            )}
+            <button className="btn-sec" onClick={salir}>
+              Cerrar sesión
+            </button>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

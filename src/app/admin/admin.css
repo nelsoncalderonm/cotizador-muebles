@@ -1,0 +1,46 @@
+.adm { min-height: 100dvh; background: var(--fondo); }
+.adm-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--marino); color: #fff; }
+.adm-barra > div { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+.adm-barra img { height: 22px; }
+.adm-barra nav { display: flex; gap: 14px; align-items: center; }
+.adm-barra a, .adm-barra button { color: #fff; background: none; border: 0; font: inherit; font-size: 0.85rem; text-decoration: underline; min-height: 44px; }
+.adm-cuerpo { max-width: 1180px; margin: 0 auto; padding: 16px; }
+.adm-centro { min-height: 100dvh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; }
+.adm-cifras { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.adm-cifras div { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px; }
+.adm-cifras small { display: block; color: var(--suave); font-size: 0.78rem; }
+.adm-cifras strong { font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+.adm-medios { margin: 12px 2px; font-size: 0.9rem; color: var(--suave); }
+.adm-error { background: #fde8e6; color: var(--peligro); padding: 10px 12px; border-radius: 10px; }
+.adm-filtros { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; align-items: center; }
+.adm-filtros input { flex: 1 1 200px; min-height: 46px; padding: 0 12px; border: 1px solid var(--borde); border-radius: 12px; font: inherit; background: var(--superficie); }
+.adm-vacio { padding: 28px; text-align: center; color: var(--suave); background: var(--superficie); border: 1px dashed var(--borde); border-radius: var(--radio); }
+.adm-tabla { display: grid; gap: 10px; }
+.adm-fila { display: grid; gap: 8px; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px; font-size: 0.9rem; }
+.adm-fila small { display: block; color: var(--suave); font-size: 0.78rem; overflow-wrap: anywhere; }
+.adm-cab { display: none; }
+.adm-fila span[data-t] { display: grid; grid-template-columns: 130px 1fr; column-gap: 8px; }
+.adm-fila span[data-t]::before { content: attr(data-t); color: var(--suave); font-size: 0.78rem; grid-row: span 3; }
+.adm-fila span[data-t] > small { grid-column: 2; }
+.adm-cliente b { overflow-wrap: anywhere; }
+.adm-chip { display: inline-block; font-style: normal; font-weight: 700; font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; background: #e8edf2; color: var(--texto); width: fit-content; }
+.adm-chip.ok { background: var(--acento-suave); color: #07624d; }
+.adm-chip.aviso { background: var(--aviso); color: #7a5200; }
+.adm-chip.mal { background: #fde8e6; color: var(--peligro); }
+.adm-chip.dueno { background: var(--marino); color: #fff; }
+.adm-acciones { display: flex; gap: 8px; }
+.adm-manual { margin-top: 22px; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 16px; }
+.adm-manual h2 { margin: 0 0 4px; font-size: 1.05rem; }
+.adm-manual p { margin: 0 0 12px; color: var(--suave); font-size: 0.88rem; }
+.adm-manual form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+.adm-manual label span { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
+.adm-manual input, .adm-manual select { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--borde); border-radius: 12px; font: inherit; background: var(--superficie); }
+@media (min-width: 900px) {
+  .adm-cifras { grid-template-columns: repeat(4, 1fr); }
+  .adm-tabla { gap: 0; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
+  .adm-fila { grid-template-columns: 2.2fr 1.2fr 1.2fr 1fr 1.5fr 1fr 1fr; align-items: start; border: 0; border-bottom: 1px solid var(--borde); border-radius: 0; }
+  .adm-fila:last-child { border-bottom: 0; }
+  .adm-cab { display: grid; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--suave); }
+  .adm-fila span[data-t] { display: block; }
+  .adm-fila span[data-t]::before { content: none; }
+}

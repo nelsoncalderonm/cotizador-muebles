@@ -10,6 +10,7 @@
     "prueba": "npx --yes tsx scripts/prueba-motor.ts && npx --yes tsx scripts/prueba-voz.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@types/three": "^0.170.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",

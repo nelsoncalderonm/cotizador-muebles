@@ -6,6 +6,8 @@ import { PanelDisenar } from "@/components/PanelDisenar";
 import { PanelArmado, PanelCortes, PanelCotizar, PanelLaminas } from "@/components/PanelesResultado";
 import { PanelPrecios } from "@/components/PanelPrecios";
 import { Onboarding } from "@/components/Onboarding";
+import { Puerta } from "@/components/Acceso";
+import { ProveedorCuenta } from "@/lib/cuenta";
 
 const PESTANAS = [
   { id: "disenar", etiqueta: "Diseñar", icono: "M4 20h16M6 16V8l6-4 6 4v8M10 16v-4h4v4" },
@@ -99,8 +101,12 @@ function App() {
 
 export default function Pagina() {
   return (
-    <ProveedorEstado>
-      <App />
-    </ProveedorEstado>
+    <ProveedorCuenta>
+      <Puerta>
+        <ProveedorEstado>
+          <App />
+        </ProveedorEstado>
+      </Puerta>
+    </ProveedorCuenta>
   );
 }

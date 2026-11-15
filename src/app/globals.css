@@ -1984,3 +1984,111 @@ p.avisos {
   display: block;
   color: var(--suave);
 }
+
+/* ---------- entrada con correo ---------- */
+.acceso {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  background: var(--marino);
+}
+
+.acceso-caja {
+  width: min(100%, 400px);
+  display: grid;
+  gap: 12px;
+  background: var(--superficie);
+  border-radius: 18px;
+  padding: 24px 20px;
+}
+
+.acceso-caja form {
+  display: grid;
+  gap: 12px;
+}
+
+.acceso-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -24px -20px 4px;
+  padding: 16px 20px;
+  background: #06142a;
+  border-radius: 18px 18px 0 0;
+  color: var(--menta);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+}
+
+.acceso-marca img {
+  height: 24px;
+}
+
+.acceso h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.acceso-sub {
+  margin: 0;
+  color: var(--suave);
+  font-size: 0.9rem;
+}
+
+.acceso-error,
+.acceso-aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.acceso-error {
+  background: #fde8e6;
+  color: var(--peligro);
+}
+
+.acceso-aviso {
+  background: var(--acento-suave);
+  color: #07624d;
+}
+
+.acceso-cambio,
+.acceso-ayuda {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--acento);
+  text-align: center;
+}
+
+.acceso-ayuda {
+  color: var(--suave);
+  font-weight: 500;
+  font-size: 0.82rem;
+}
+
+.cuenta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.acceso .campo input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 1rem;
+  background: var(--superficie);
+  color: var(--texto);
+}
