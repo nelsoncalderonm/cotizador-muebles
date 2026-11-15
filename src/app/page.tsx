@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DemoLamina, DemoPlano, DemoTelefono } from "@/components/landing/DemoAnimada";
 import "./landing.css";
 
+import { enlaceSoporte } from "@/lib/soporte";
 // Checkout de Hotmart (plan mensual). Se puede cambiar con NEXT_PUBLIC_CHECKOUT_URL sin tocar código.
 const CHECKOUT = process.env.NEXT_PUBLIC_CHECKOUT_URL || "https://pay.hotmart.com/M108507757C";
 const PRECIO = process.env.NEXT_PUBLIC_PRECIO || "US$15";
@@ -189,6 +190,12 @@ export default function Landing() {
               <p>{f.r}</p>
             </details>
           ))}
+          <p className="ld-duda">
+            ¿Te quedó alguna duda?{" "}
+            <a href={enlaceSoporte("Hola, tengo una pregunta sobre INNER Muebles.")} target="_blank" rel="noreferrer">
+              Escríbenos por WhatsApp
+            </a>
+          </p>
         </div>
       </section>
 

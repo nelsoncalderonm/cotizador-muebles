@@ -2,6 +2,7 @@
 
 import { useEstado } from "@/lib/estado";
 import { NOMBRES_PRECIO_HERRAJE } from "@/lib/motor/defaults";
+import { enlaceSoporte } from "@/lib/soporte";
 import type { ClaveMaterial } from "@/lib/motor/tipos";
 
 function Num({ etiqueta, valor, onCambio, sufijo }: { etiqueta: string; valor: number; onCambio: (n: number) => void; sufijo?: string }) {
@@ -133,6 +134,16 @@ export function PanelPrecios() {
           <Num etiqueta="Decimales" valor={precios.decimales} onCambio={(n) => setPrecios({ ...precios, decimales: Math.max(0, Math.min(2, Math.round(n))) })} />
         </div>
       </details>
+
+      <div className="ayuda-soporte">
+        <span>
+          <b>¿Necesitas ayuda?</b>
+          <small>Escríbenos y te respondemos por WhatsApp.</small>
+        </span>
+        <a className="btn-wa" href={enlaceSoporte("Hola, necesito ayuda con INNER Muebles.")} target="_blank" rel="noreferrer">
+          Soporte por WhatsApp
+        </a>
+      </div>
     </div>
   );
 }

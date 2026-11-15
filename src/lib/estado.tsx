@@ -20,6 +20,8 @@ export interface DatosTaller {
   ciudad: string;
   /** País elegido en la configuración inicial (id de PAISES). */
   pais?: string;
+  /** WhatsApp del proveedor de tableros, para pedirle cotización. */
+  proveedor?: string;
 }
 
 interface Guardado {

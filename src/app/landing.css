@@ -623,3 +623,15 @@
     display: none;
   }
 }
+
+.ld-duda {
+  margin-top: 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ld-duda a {
+  color: inherit;
+  text-decoration: underline;
+}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatoDinero, mm, useEstado } from "@/lib/estado";
-import { textoCantos } from "@/lib/motor/proyecto";
+import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
 import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
@@ -62,8 +62,9 @@ export function useAccionesPdf() {
       await compartirPdf(pdfPlanos(resultado, taller, cliente), nombreArchivo("planos", cliente.proyecto));
     },
     cotizacion: async (detallado: boolean) => {
-      const { pdfCotizacion, compartirPdf } = await import("@/lib/pdf");
-      await compartirPdf(pdfCotizacion(resultado, precios, taller, cliente, detallado), nombreArchivo("cotizacion", cliente.proyecto));
+      const [{ pdfCotizacion, compartirPdf }, { imagenesProyecto }] = await Promise.all([import("@/lib/pdf"), import("@/lib/renders")]);
+      const imagenes = await imagenesProyecto(resultado.muebles, config).catch(() => ({}));
+      await compartirPdf(pdfCotizacion(resultado, precios, taller, cliente, detallado, imagenes), nombreArchivo("cotizacion", cliente.proyecto));
     },
   };
 }
@@ -234,10 +235,166 @@ export function PanelArmado() {
   );
 }
 
+/** Imágenes 3D de los muebles del proyecto (se dibujan una por una, sin frenar la pantalla). */
+function useImagenes3D() {
+  const { resultado, config } = useEstado();
+  const [imagenes, setImagenes] = useState<Record<string, string>>({});
+  const [sin3d, setSin3d] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const { imagenMueble } = await import("@/lib/renders");
+      for (const m of resultado.muebles) {
+        const url = await imagenMueble(m, config).catch(() => null);
+        if (!vivo) return;
+        if (url) setImagenes((s) => (s[m.item.uid] === url ? s : { ...s, [m.item.uid]: url }));
+        else setSin3d(true);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [resultado.muebles, config]);
+  return { imagenes, sin3d };
+}
+
+function PrecioProveedor({ nombre, cantidad, valor, simbolo, onCambio }: { nombre: string; cantidad: string; valor: number; simbolo: string; onCambio: (n: number) => void }) {
+  return (
+    <label className="fila-proveedor">
+      <span>
+        {nombre}
+        <small>{cantidad}</small>
+      </span>
+      <div className="input-mm">
+        <input type="number" inputMode="decimal" value={valor || ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => onCambio(parseFloat(e.target.value) || 0)} />
+        <em>{simbolo}</em>
+      </div>
+    </label>
+  );
+}
+
+/** Pedirle cotización al proveedor con las cantidades exactas y anotar los precios que responda. */
+function BloqueProveedor() {
+  const { resultado, config, setConfig, precios, setPrecios, taller, setTaller, cliente } = useEstado();
+  const [conHerrajes, setConHerrajes] = useState(true);
+  const [copiado, setCopiado] = useState(false);
+  const $ = (n: number) => formatoDinero(n, precios);
+  const usados = resultado.materiales.filter((m) => m.laminas.length > 0);
+  const totalLaminas = usados.reduce((s, m) => s + m.laminas.length, 0);
+  const piezas = resultado.cortes.reduce((s, f) => s + f.cantidad, 0);
+  const plural = (n: number, uno: string, varios: string) => `${mm(n)} ${n === 1 ? uno : varios}`;
+
+  const lineas = [
+    "Hola, buen día. ¿Me ayuda con la cotización de este pedido, por favor?",
+    "",
+    "*Tableros*",
+    ...usados.map((m) => {
+      const t = config.materiales[m.clave];
+      const espesor = t.nombre.includes(`${mm(t.espesor)} mm`) ? "" : `, ${mm(t.espesor)} mm`;
+      return `• ${plural(m.laminas.length, "lámina", "láminas")} de ${t.nombre}${espesor} (${mm(t.largoLamina)} × ${mm(t.anchoLamina)} mm)`;
+    }),
+    "",
+    "*Corte y canto*",
+    `• Corte de ${plural(totalLaminas, "lámina", "láminas")} (${plural(piezas, "pieza", "piezas")})`,
+    ...(resultado.metrosCanto > 0 ? [`• ${mm(resultado.metrosCanto)} m de canto de ${mm(config.espesorCanto)} mm, pegado`] : []),
+    ...(conHerrajes && resultado.herrajes.length ? ["", "*Herrajes*", ...resultado.herrajes.map((h) => `• ${mm(h.cantidad)} × ${h.nombre}`)] : []),
+    "",
+    "¿Me confirma precio de cada cosa y tiempo de entrega? Le envío el plano de cortes en PDF.",
+    `Gracias${taller.nombre ? `. ${taller.nombre}` : ""}${cliente.proyecto ? ` (${cliente.proyecto})` : ""}`,
+  ];
+  const mensaje = lineas.join("\n");
+  const tel = (taller.proveedor ?? "").replace(/\D/g, "");
+  const claveHerraje = (clave: string) => (clave in precios.herrajes ? clave : clave.startsWith("corredera_") ? "corredera" : clave);
+
+  return (
+    <details className="bloque plegable proveedor" open>
+      <summary>Proveedor: pide precios y anótalos</summary>
+
+      <h4>
+        <b>1</b> Pídele la cotización
+      </h4>
+      <pre className="mensaje-proveedor">{mensaje}</pre>
+      <label className="campo campo-switch">
+        <span>Incluir herrajes en el pedido</span>
+        <input type="checkbox" checked={conHerrajes} onChange={(e) => setConHerrajes(e.target.checked)} />
+        <i aria-hidden />
+      </label>
+      <label className="campo">
+        <span>WhatsApp del proveedor</span>
+        <input type="tel" inputMode="tel" value={taller.proveedor ?? ""} placeholder="573001234567" onChange={(e) => setTaller({ ...taller, proveedor: e.target.value })} />
+      </label>
+      <div className="acciones">
+        <a className="btn-wa" href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noreferrer">
+          Enviar al proveedor por WhatsApp
+        </a>
+        <button
+          className="btn-sec"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(mensaje);
+              setCopiado(true);
+              setTimeout(() => setCopiado(false), 1800);
+            } catch {
+              /* sin permiso para copiar */
+            }
+          }}
+        >
+          {copiado ? "Copiado" : "Copiar mensaje"}
+        </button>
+      </div>
+
+      <h4>
+        <b>2</b> Anota lo que te cotizó
+      </h4>
+      <p className="nota">Escribe el precio por unidad. La cotización se actualiza sola y los precios quedan guardados para la próxima.</p>
+      <div className="lista-proveedor">
+        {usados.map((m) => {
+          const t = config.materiales[m.clave];
+          return (
+            <PrecioProveedor
+              key={m.clave}
+              nombre={`${t.nombre} (por lámina)`}
+              cantidad={`Necesitas ${plural(m.laminas.length, "lámina", "láminas")}`}
+              valor={t.precioLamina}
+              simbolo={precios.simbolo}
+              onCambio={(n) => setConfig({ ...config, materiales: { ...config.materiales, [m.clave]: { ...t, precioLamina: n } } })}
+            />
+          );
+        })}
+        {totalLaminas > 0 && (
+          <PrecioProveedor nombre="Corte (por lámina)" cantidad={`Son ${plural(totalLaminas, "lámina", "láminas")}`} valor={precios.servicioCortePorLamina} simbolo={precios.simbolo} onCambio={(n) => setPrecios({ ...precios, servicioCortePorLamina: n })} />
+        )}
+        {resultado.metrosCanto > 0 && (
+          <>
+            <PrecioProveedor nombre="Canto (por metro)" cantidad={`Necesitas ${mm(resultado.metrosCanto)} m`} valor={precios.cantoPorMetro} simbolo={precios.simbolo} onCambio={(n) => setPrecios({ ...precios, cantoPorMetro: n })} />
+            <PrecioProveedor nombre="Pegado de canto (por metro)" cantidad={`Son ${mm(resultado.metrosCanto)} m`} valor={precios.canteadoPorMetro} simbolo={precios.simbolo} onCambio={(n) => setPrecios({ ...precios, canteadoPorMetro: n })} />
+          </>
+        )}
+        {conHerrajes &&
+          resultado.herrajes.map((h) => (
+            <PrecioProveedor
+              key={h.clave}
+              nombre={h.nombre}
+              cantidad={`Necesitas ${mm(h.cantidad)}`}
+              valor={precioHerraje(precios, h.clave)}
+              simbolo={precios.simbolo}
+              onCambio={(n) => setPrecios({ ...precios, herrajes: { ...precios.herrajes, [claveHerraje(h.clave)]: n } })}
+            />
+          ))}
+      </div>
+      <div className="total-proveedor">
+        <span>Materiales y herrajes</span>
+        <b>{$(resultado.subtotalMateriales)}</b>
+      </div>
+    </details>
+  );
+}
+
 export function PanelCotizar() {
   const { resultado, precios, cliente, setCliente, taller } = useEstado();
   const pdf = useAccionesPdf();
   const [detallado, setDetallado] = useState(false);
+  const { imagenes, sin3d } = useImagenes3D();
   if (!resultado.muebles.length) return <Vacio />;
   const $ = (n: number) => formatoDinero(n, precios);
   const texto = encodeURIComponent(
@@ -279,6 +436,30 @@ export function PanelCotizar() {
         <span>Notas para el cliente</span>
         <textarea rows={2} value={cliente.notas} placeholder="Incluye instalación. 50 % de anticipo." onChange={(e) => setCliente({ ...cliente, notas: e.target.value })} />
       </label>
+
+      <section className="bloque">
+        <h3>Así lo verá tu cliente</h3>
+        <div className="galeria-cotizar">
+          {resultado.muebles.map((m) => (
+            <figure key={m.item.uid}>
+              {imagenes[m.item.uid] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagenes[m.item.uid]} alt={`${m.item.nombre} en 3D`} />
+              ) : sin3d ? (
+                <VistaMueble vista={m.resultado.vista} />
+              ) : (
+                <div className="cargando-3d" aria-label="Dibujando el mueble en 3D" />
+              )}
+              <figcaption>
+                {m.item.cantidad} × {m.item.nombre}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="nota">Esta imagen en 3D va en el PDF de la cotización, con el ambiente y los colores que elegiste al diseñar.</p>
+      </section>
+
+      <BloqueProveedor />
 
       <section className="bloque">
         <h3>Costos</h3>

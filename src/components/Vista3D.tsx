@@ -364,6 +364,7 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
       });
       pmrem.dispose();
       renderer.dispose();
+      renderer.forceContextLoss(); // libera el contexto: la cotización dibuja varios muebles seguidos
       el.removeChild(renderer.domElement);
       escena.current = null;
     };

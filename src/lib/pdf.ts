@@ -205,7 +205,7 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
 }
 
 /** PDF de cotización para el cliente final. */
-export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: DatosTaller, cliente: DatosCliente, detallado: boolean) {
+export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: DatosTaller, cliente: DatosCliente, detallado: boolean, imagenes: Record<string, string> = {}) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = encabezado(doc, "Cotización", taller, cliente);
   const $ = (n: number) => formatoDinero(n, precios);
@@ -220,17 +220,21 @@ export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: Da
     const v = m.resultado.vista;
     doc.setDrawColor(230, 230, 230);
     doc.roundedRect(14, y, W - 28, 60, 2, 2, "S");
-    dibujarVista(doc, v, 16, y + 2, 60, 56, true, false);
+    const foto = imagenes[m.item.uid];
+    // Imagen 3D del mueble; si el equipo no pudo dibujarla, queda el dibujo de frente
+    if (foto) doc.addImage(foto, "JPEG", 16, y + 2, 74.7, 56);
+    else dibujarVista(doc, v, 16, y + 2, 74.7, 56, true, false);
+    const tx = 96;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(30, 30, 30);
-    doc.text(`${m.item.cantidad} × ${m.item.nombre}`, 82, y + 9);
+    doc.text(`${m.item.cantidad} × ${m.item.nombre}`, tx, y + 9);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...GRIS);
     const alto = v.alto, ancho = v.ancho;
     const fondo = Number(m.item.valores.fondo ?? 0);
-    doc.text([`Medidas: ${mm(ancho)} ancho × ${mm(alto)} alto × ${mm(fondo)} fondo (mm)`, m.nombreMueble], 82, y + 16);
+    doc.text([m.nombreMueble, `Ancho: ${mm(ancho)} mm`, `Alto: ${mm(alto)} mm`, `Fondo: ${mm(fondo)} mm`], tx, y + 16);
     y += 66;
   }
 
