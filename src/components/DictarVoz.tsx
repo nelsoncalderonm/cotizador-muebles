@@ -13,6 +13,46 @@ function tipoAudio() {
   return "";
 }
 
+/**
+ * Convierte la grabación a WAV mono de 16 kHz. Así el audio pesa poco (~2 MB por minuto) y
+ * lo entiende cualquier servicio de transcripción, grabe el celular en webm, mp4 u ogg.
+ */
+async function aWav(audio: Blob): Promise<Blob> {
+  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const ctx = new Ctx();
+  try {
+    const original = await ctx.decodeAudioData(await audio.arrayBuffer());
+    const tasa = 16000;
+    const fuera = new OfflineAudioContext(1, Math.max(1, Math.ceil(original.duration * tasa)), tasa);
+    const fuente = fuera.createBufferSource();
+    fuente.buffer = original;
+    fuente.connect(fuera.destination);
+    fuente.start();
+    const pcm = (await fuera.startRendering()).getChannelData(0);
+    const vista = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+    const texto = (pos: number, t: string) => [...t].forEach((c, i) => vista.setUint8(pos + i, c.charCodeAt(0)));
+    texto(0, "RIFF");
+    vista.setUint32(4, 36 + pcm.length * 2, true);
+    texto(8, "WAVEfmt ");
+    vista.setUint32(16, 16, true);
+    vista.setUint16(20, 1, true);
+    vista.setUint16(22, 1, true);
+    vista.setUint32(24, tasa, true);
+    vista.setUint32(28, tasa * 2, true);
+    vista.setUint16(32, 2, true);
+    vista.setUint16(34, 16, true);
+    texto(36, "data");
+    vista.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i++) {
+      const v = Math.max(-1, Math.min(1, pcm[i]));
+      vista.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+    }
+    return new Blob([vista], { type: "audio/wav" });
+  } finally {
+    void ctx.close();
+  }
+}
+
 /** Botón para dictar un mueble por voz: graba, transcribe y llena el formulario. */
 export function DictarVoz() {
   const { items, seleccion, agregar, actualizarItem } = useEstado();
@@ -69,7 +109,13 @@ export function DictarVoz() {
   async function enviar(audio: Blob) {
     setFase("procesando");
     try {
-      const ext = audio.type.includes("mp4") ? "m4a" : audio.type.includes("ogg") ? "ogg" : "webm";
+      let ext = audio.type.includes("mp4") ? "m4a" : audio.type.includes("ogg") ? "ogg" : "webm";
+      try {
+        audio = await aWav(audio);
+        ext = "wav";
+      } catch {
+        /* si el navegador no puede convertir, se envía la grabación original */
+      }
       const fd = new FormData();
       fd.append("audio", audio, `nota.${ext}`);
       const r = await fetch("/api/voz", { method: "POST", body: fd });
