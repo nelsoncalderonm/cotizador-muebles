@@ -1560,3 +1560,299 @@ p.avisos {
   font-weight: 600;
   font-size: 0.9rem;
 }
+
+/* ================= Pulido de UX / UI ================= */
+/* Lectores de pantalla */
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Foco visible con teclado en todo lo interactivo */
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+.barra :where(button, a):focus-visible,
+.total-flotante:focus-visible {
+  outline-color: var(--menta);
+}
+
+/* Respuesta al tocar: corta y sin mover el diseño */
+:where(button, .btn, .btn-sec, .btn-wa, .cat-item, .chip, summary) {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.1s ease, transform 0.1s ease;
+  touch-action: manipulation;
+}
+
+:where(button, .btn, .btn-sec, .btn-wa):active:not(:disabled) {
+  opacity: 0.82;
+}
+
+.cat-item:active,
+.total-flotante:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: #00c796;
+  }
+  .btn-sec:hover:not(:disabled),
+  .chip:hover:not(.activo),
+  .segmentos button:hover:not(.activo),
+  .onb-opciones button:hover:not(.activo),
+  .onb-paises button:hover:not(.activo) {
+    border-color: var(--acento);
+  }
+  .btn-icono:hover:not(.activo) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .pestanas button:hover:not(.activo) {
+    color: var(--texto);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Zonas de toque de 44 px como mínimo */
+.btn-icono {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.segmentos button,
+.btn-flotante {
+  min-height: 44px;
+}
+
+.visor-modo button,
+.visor-ambientes button {
+  min-height: 40px;
+}
+
+.btn-cerrar {
+  width: 44px;
+  height: 44px;
+}
+
+.pestanas button {
+  font-size: 0.75rem;
+  min-height: 48px;
+}
+
+.barra {
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
+}
+
+/* Catálogo: tarjetas parejas, miniatura sobre fondo y descripción corta */
+.cat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 700px) {
+  .cat-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}
+
+.cat-item {
+  gap: 2px;
+  padding: 10px 10px 12px;
+  height: 100%;
+}
+
+.cat-item strong {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.cat-item span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.cat-mini {
+  height: 112px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--fondo);
+}
+
+@media (hover: hover) {
+  .cat-item:hover .cat-mini {
+    background: var(--acento-suave);
+  }
+}
+
+.cat-titulo {
+  margin-top: 22px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Estado vacío con acción */
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 56px 16px;
+}
+
+.vacio svg {
+  width: 64px;
+  height: 64px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--acento-suave);
+  fill: none;
+  stroke: var(--acento);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vacio strong {
+  font-size: 1.1rem;
+  color: var(--texto);
+}
+
+.vacio p {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+/* Indicador de trabajo en botones */
+.girando {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Mis precios: secciones plegables para no abrumar */
+.plegable {
+  padding: 0;
+}
+
+.plegable > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radio);
+}
+
+.plegable > summary::-webkit-details-marker {
+  display: none;
+}
+
+.plegable > summary::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-right: 2px solid var(--suave);
+  border-bottom: 2px solid var(--suave);
+  rotate: 45deg;
+  transition: rotate 0.2s ease;
+}
+
+.plegable[open] > summary::after {
+  rotate: -135deg;
+}
+
+.plegable[open] > summary {
+  border-bottom: 1px solid var(--borde);
+  border-radius: var(--radio) var(--radio) 0 0;
+  margin-bottom: 14px;
+}
+
+.plegable > :not(summary) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.plegable > :last-child:not(summary) {
+  margin-bottom: 14px;
+}
+
+/* Textos de ayuda legibles */
+.nota,
+.campo small {
+  line-height: 1.45;
+}
+
+.campo small {
+  font-size: 0.78rem;
+}
+
+.onb-ejemplo {
+  border: 1px solid #26405f;
+}
+
+@media (max-width: 420px) {
+  .barra {
+    gap: 6px;
+  }
+  .marca {
+    gap: 6px;
+  }
+  .marca img {
+    height: 19px;
+  }
+  .marca b {
+    font-size: 0.7rem;
+  }
+  .btn-icono {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+}

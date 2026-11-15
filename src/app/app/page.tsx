@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProveedorEstado, formatoDinero, useEstado } from "@/lib/estado";
 import { PanelDisenar } from "@/components/PanelDisenar";
 import { PanelArmado, PanelCortes, PanelCotizar, PanelLaminas } from "@/components/PanelesResultado";
@@ -16,10 +16,26 @@ const PESTANAS = [
 ] as const;
 
 type Id = (typeof PESTANAS)[number]["id"] | "precios";
+const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios"];
 
 function App() {
   const { listo, resultado, precios, items, nuevoProyecto, configurado } = useEstado();
-  const [tab, setTab] = useState<Id>("disenar");
+  const [tab, setTabEstado] = useState<Id>("disenar");
+  // La pestaña vive en la URL (#cortes, #cotizar…): el botón Atrás del celular vuelve a la pestaña anterior
+  useEffect(() => {
+    const leer = () => {
+      const h = location.hash.slice(1);
+      setTabEstado(IDS.includes(h as Id) ? (h as Id) : "disenar");
+    };
+    leer();
+    window.addEventListener("hashchange", leer);
+    return () => window.removeEventListener("hashchange", leer);
+  }, []);
+  const setTab = useCallback((t: Id) => {
+    setTabEstado(t);
+    if (location.hash.slice(1) !== t) history.pushState(null, "", `#${t}`);
+    window.scrollTo({ top: 0 });
+  }, []);
   if (!listo) return <div className="cargando">Cargando…</div>;
   return (
     <div className="app">
@@ -30,6 +46,7 @@ function App() {
           <img src="/brand/inner-logo-blanco.png" alt="INNER" />
           <i aria-hidden />
           <b>Muebles</b>
+          <h1 className="solo-lector">INNER Muebles</h1>
         </div>
         <div className="barra-acciones">
           {items.length > 0 && (
@@ -42,7 +59,7 @@ function App() {
               Nuevo
             </button>
           )}
-          <button className={`btn-icono${tab === "precios" ? " activo" : ""}`} onClick={() => setTab(tab === "precios" ? "disenar" : "precios")}>
+          <button className={`btn-icono${tab === "precios" ? " activo" : ""}`} aria-pressed={tab === "precios"} onClick={() => setTab(tab === "precios" ? "disenar" : "precios")}>
             Mis precios
           </button>
         </div>
@@ -50,7 +67,7 @@ function App() {
 
       <nav className="pestanas" aria-label="Secciones">
         {PESTANAS.map((p) => (
-          <button key={p.id} className={tab === p.id ? "activo" : ""} onClick={() => setTab(p.id)}>
+          <button key={p.id} className={tab === p.id ? "activo" : ""} aria-current={tab === p.id ? "page" : undefined} onClick={() => setTab(p.id)}>
             <svg viewBox="0 0 24 24" aria-hidden>
               <path d={p.icono} />
             </svg>

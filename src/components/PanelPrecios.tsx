@@ -29,8 +29,8 @@ export function PanelPrecios() {
         Repetir la configuración guiada
       </button>
 
-      <section className="bloque">
-        <h3>Mi taller</h3>
+      <details className="bloque plegable" open>
+        <summary>Mi taller</summary>
         <div className="grid-campos">
           <label className="campo">
             <span>Nombre del taller</span>
@@ -45,10 +45,10 @@ export function PanelPrecios() {
             <input value={taller.ciudad} onChange={(e) => setTaller({ ...taller, ciudad: e.target.value })} />
           </label>
         </div>
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Tableros</h3>
+      <details className="bloque plegable" open>
+        <summary>Tableros</summary>
         {claves.map((k) => {
           const m = config.materiales[k];
           const set = (c: Partial<typeof m>) => setConfig({ ...config, materiales: { ...config.materiales, [k]: { ...m, ...c } } });
@@ -72,10 +72,10 @@ export function PanelPrecios() {
             </div>
           );
         })}
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Cómo cobrar los tableros</h3>
+      <details className="bloque plegable">
+        <summary>Cómo cobrar los tableros</summary>
         <div className="segmentos">
           <button className={precios.cobroLaminas === "proporcional" ? "activo" : ""} onClick={() => setPrecios({ ...precios, cobroLaminas: "proporcional" })}>
             Solo lo que se usa
@@ -89,10 +89,10 @@ export function PanelPrecios() {
             <Num etiqueta="Desperdicio" valor={precios.desperdicioPorcentaje} onCambio={(n) => setPrecios({ ...precios, desperdicioPorcentaje: n })} sufijo="%" />
           </div>
         )}
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Corte y canto</h3>
+      <details className="bloque plegable">
+        <summary>Corte y canto</summary>
         <div className="grid-campos">
           <Num etiqueta="Canto (precio por metro)" valor={precios.cantoPorMetro} onCambio={(n) => setPrecios({ ...precios, cantoPorMetro: n })} sufijo={precios.simbolo} />
           <Num etiqueta="Espesor del canto" valor={config.espesorCanto} onCambio={(n) => setConfig({ ...config, espesorCanto: n })} sufijo="mm" />
@@ -102,29 +102,29 @@ export function PanelPrecios() {
           <Num etiqueta="Refilado por borde" valor={config.refilado} onCambio={(n) => setConfig({ ...config, refilado: n })} sufijo="mm" />
           <Num etiqueta="Holgura entre frentes" valor={config.holgura} onCambio={(n) => setConfig({ ...config, holgura: n })} sufijo="mm" />
         </div>
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Herrajes</h3>
+      <details className="bloque plegable">
+        <summary>Herrajes</summary>
         <div className="grid-campos">
           {Object.entries(NOMBRES_PRECIO_HERRAJE).map(([k, nombre]) => (
             <Num key={k} etiqueta={nombre} valor={precios.herrajes[k] ?? 0} onCambio={(n) => setPrecios({ ...precios, herrajes: { ...precios.herrajes, [k]: n } })} sufijo={precios.simbolo} />
           ))}
         </div>
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Ganancia</h3>
+      <details className="bloque plegable">
+        <summary>Ganancia</summary>
         <div className="grid-campos">
           <Num etiqueta="Mano de obra (% sobre materiales)" valor={precios.manoObraPorcentaje} onCambio={(n) => setPrecios({ ...precios, manoObraPorcentaje: n })} sufijo="%" />
           <Num etiqueta="Utilidad (% sobre costo)" valor={precios.margenPorcentaje} onCambio={(n) => setPrecios({ ...precios, margenPorcentaje: n })} sufijo="%" />
           <Num etiqueta="Otros costos fijos (transporte, instalación)" valor={precios.otrosCostos} onCambio={(n) => setPrecios({ ...precios, otrosCostos: n })} sufijo={precios.simbolo} />
           <Num etiqueta="Impuesto" valor={precios.impuestoPorcentaje} onCambio={(n) => setPrecios({ ...precios, impuestoPorcentaje: n })} sufijo="%" />
         </div>
-      </section>
+      </details>
 
-      <section className="bloque">
-        <h3>Moneda</h3>
+      <details className="bloque plegable">
+        <summary>Moneda</summary>
         <div className="grid-campos">
           <label className="campo">
             <span>Símbolo</span>
@@ -132,7 +132,7 @@ export function PanelPrecios() {
           </label>
           <Num etiqueta="Decimales" valor={precios.decimales} onCambio={(n) => setPrecios({ ...precios, decimales: Math.max(0, Math.min(2, Math.round(n))) })} />
         </div>
-      </section>
+      </details>
     </div>
   );
 }

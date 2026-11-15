@@ -2,8 +2,9 @@ import Link from "next/link";
 import { DemoLamina, DemoPlano, DemoTelefono } from "@/components/landing/DemoAnimada";
 import "./landing.css";
 
-const CHECKOUT = process.env.NEXT_PUBLIC_CHECKOUT_URL || "/app";
-const PRECIO = process.env.NEXT_PUBLIC_PRECIO || "US$10";
+// Checkout de Hotmart (plan mensual). Se puede cambiar con NEXT_PUBLIC_CHECKOUT_URL sin tocar código.
+const CHECKOUT = process.env.NEXT_PUBLIC_CHECKOUT_URL || "https://pay.hotmart.com/M108507757C";
+const PRECIO = process.env.NEXT_PUBLIC_PRECIO || "US$15";
 
 function Cta({ texto = `Quiero INNER Muebles por ${PRECIO}/mes`, grande = false }: { texto?: string; grande?: boolean }) {
   return (

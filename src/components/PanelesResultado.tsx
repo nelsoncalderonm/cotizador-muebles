@@ -9,7 +9,18 @@ import { colorMueble } from "@/lib/colores";
 import { esPuerta } from "@/lib/motor/constructor";
 
 function Vacio() {
-  return <p className="vacio">Agrega al menos un mueble en la pestaña Diseñar.</p>;
+  return (
+    <div className="vacio">
+      <svg viewBox="0 0 48 48" aria-hidden>
+        <path d="M8 40V12h32v28M8 22h32M24 12v28M17 17h2M29 17h2" />
+      </svg>
+      <strong>Aún no hay muebles</strong>
+      <p>Elige un mueble y pon sus medidas. Aquí verás los cortes, las láminas y la cotización.</p>
+      <a className="btn" href="#disenar">
+        Elegir un mueble
+      </a>
+    </div>
+  );
 }
 
 export function BotonPdf({ etiqueta, generar, principal }: { etiqueta: string; generar: () => Promise<void>; principal?: boolean }) {
@@ -18,6 +29,7 @@ export function BotonPdf({ etiqueta, generar, principal }: { etiqueta: string; g
     <button
       className={principal ? "btn" : "btn-sec"}
       disabled={ocupado}
+      aria-busy={ocupado}
       onClick={async () => {
         setOcupado(true);
         try {
@@ -27,6 +39,7 @@ export function BotonPdf({ etiqueta, generar, principal }: { etiqueta: string; g
         }
       }}
     >
+      {ocupado && <i className="girando" aria-hidden />}
       {ocupado ? "Generando…" : etiqueta}
     </button>
   );
