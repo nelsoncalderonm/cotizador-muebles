@@ -10,6 +10,7 @@ export interface ItemProyecto {
   nombre: string;
   valores: ValoresParametros;
   cantidad: number;
+  acabados?: { cuerpo: string; frente: string; jaladera: string };
 }
 
 export interface Precios {

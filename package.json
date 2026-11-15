@@ -10,11 +10,13 @@
     "prueba": "npx --yes tsx scripts/prueba-motor.ts && npx --yes tsx scripts/prueba-voz.ts"
   },
   "dependencies": {
+    "@types/three": "^0.170.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "next": "15.5.29",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

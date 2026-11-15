@@ -7,6 +7,7 @@ import { CONFIG_DEFECTO } from "@/lib/motor/defaults";
 import type { Parametro } from "@/lib/motor/tipos";
 import { VistaMueble } from "./VistaMueble";
 import { DictarVoz } from "./DictarVoz";
+import { VisorMueble } from "./VisorMueble";
 
 export function Catalogo({ onElegir }: { onElegir: (id: string) => void }) {
   const miniaturas = useMemo(
@@ -148,8 +149,8 @@ export function PanelDisenar() {
 
       {item && def && res && (
         <div className="editor">
-          <div className="editor-vista">
-            <VistaMueble vista={res.vista} />
+          <div className="editor-vista editor-vista-3d">
+            <VisorMueble item={item} res={res} />
           </div>
           <div className="editor-form">
             <label className="campo">
