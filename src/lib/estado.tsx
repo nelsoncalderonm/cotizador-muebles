@@ -18,6 +18,8 @@ export interface DatosTaller {
   nombre: string;
   telefono: string;
   ciudad: string;
+  /** País elegido en la configuración inicial (id de PAISES). */
+  pais?: string;
 }
 
 interface Guardado {
@@ -26,6 +28,8 @@ interface Guardado {
   precios: Precios;
   cliente: DatosCliente;
   taller: DatosTaller;
+  /** La configuración inicial ya se hizo (o se saltó). */
+  configurado: boolean;
 }
 
 const CLAVE = "cotizador-muebles:v1";
@@ -36,6 +40,7 @@ const INICIAL: Guardado = {
   precios: PRECIOS_DEFECTO,
   cliente: { proyecto: "", cliente: "", telefono: "", notas: "", validezDias: 15 },
   taller: { nombre: "", telefono: "", ciudad: "" },
+  configurado: false,
 };
 
 function cargar(): Guardado {
@@ -49,6 +54,8 @@ function cargar(): Guardado {
       precios: { ...PRECIOS_DEFECTO, ...g.precios, herrajes: { ...PRECIOS_DEFECTO.herrajes, ...g.precios?.herrajes } },
       cliente: { ...INICIAL.cliente, ...g.cliente },
       taller: { ...INICIAL.taller, ...g.taller },
+      // quien ya venía usando la app (tiene muebles o datos del taller) no ve la configuración inicial
+      configurado: g.configurado ?? Boolean(g.items?.length || g.taller?.nombre),
     };
   } catch {
     return INICIAL;
@@ -71,6 +78,9 @@ interface Ctx extends Guardado {
   setCliente: (c: DatosCliente) => void;
   setTaller: (t: DatosTaller) => void;
   nuevoProyecto: () => void;
+  /** Guarda de una vez lo elegido en la configuración inicial. Sin cambios = solo la marca como hecha. */
+  terminarConfiguracion: (cambios?: { config: Configuracion; precios: Precios; taller: DatosTaller }) => void;
+  repetirConfiguracion: () => void;
 }
 
 const Contexto = createContext<Ctx | null>(null);
@@ -149,6 +159,8 @@ export function ProveedorEstado({ children }: { children: ReactNode }) {
     setPrecios: (precios) => setG((s) => ({ ...s, precios })),
     setCliente: (cliente) => setG((s) => ({ ...s, cliente })),
     setTaller: (taller) => setG((s) => ({ ...s, taller })),
+    terminarConfiguracion: (cambios) => setG((s) => ({ ...s, ...cambios, configurado: true })),
+    repetirConfiguracion: () => setG((s) => ({ ...s, configurado: false })),
     nuevoProyecto: () => {
       setG((s) => ({ ...s, items: [], cliente: INICIAL.cliente }));
       setSeleccion(null);

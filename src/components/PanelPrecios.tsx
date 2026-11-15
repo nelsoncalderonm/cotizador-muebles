@@ -17,7 +17,7 @@ function Num({ etiqueta, valor, onCambio, sufijo }: { etiqueta: string; valor: n
 }
 
 export function PanelPrecios() {
-  const { config, setConfig, precios, setPrecios, taller, setTaller } = useEstado();
+  const { config, setConfig, precios, setPrecios, taller, setTaller, repetirConfiguracion } = useEstado();
   const claves: ClaveMaterial[] = ["cuerpo", "frente", "fondo"];
   return (
     <div className="panel">
@@ -25,6 +25,9 @@ export function PanelPrecios() {
         <h2>Mis precios y taller</h2>
       </div>
       <p className="nota">Todo se guarda en este dispositivo y se recalcula al instante.</p>
+      <button className="btn btn-sec" onClick={repetirConfiguracion}>
+        Repetir la configuración guiada
+      </button>
 
       <section className="bloque">
         <h3>Mi taller</h3>

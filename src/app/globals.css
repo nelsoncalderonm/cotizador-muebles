@@ -1264,3 +1264,299 @@ p.avisos {
     min-height: 34px;
   }
 }
+
+/* ---------- Configuración inicial ---------- */
+.onb {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 31, 58, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.onb-caja {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  height: min(760px, 100dvh);
+  background: var(--fondo);
+  color: var(--texto);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 600px) {
+  .onb-caja {
+    height: 100dvh;
+    border-radius: 0;
+  }
+}
+
+.onb-progreso {
+  padding: 16px 20px 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--suave);
+}
+
+.onb-barra {
+  height: 6px;
+  margin-bottom: 8px;
+  border-radius: 99px;
+  background: var(--borde);
+  overflow: hidden;
+}
+
+.onb-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--menta);
+  transition: width 0.25s ease;
+}
+
+.onb-cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onb-cuerpo h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.onb-cuerpo h3 {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+}
+
+.onb-sub {
+  margin: -6px 0 2px;
+  color: var(--suave);
+  font-size: 0.9rem;
+}
+
+.onb-arriba {
+  margin-top: 4px;
+}
+
+.onb-centro {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.onb-centro p {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--suave);
+}
+
+.onb-icono {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 26px;
+  background: var(--marino);
+}
+
+.onb-icono svg {
+  width: 46px;
+  height: 46px;
+  fill: none;
+  stroke: var(--menta);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onb-icono.listo {
+  background: var(--menta);
+  border-radius: 50%;
+}
+
+.onb-icono.listo svg {
+  stroke: var(--marino);
+  stroke-width: 4.5;
+}
+
+.onb-lista,
+.onb-resumen {
+  list-style: none;
+  width: 100%;
+  max-width: 380px;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.onb-lista li {
+  position: relative;
+  padding: 12px 14px 12px 42px;
+  border-radius: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.onb-lista li::before {
+  content: "✓";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--acento-suave);
+  color: var(--acento);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.onb-resumen li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  font-size: 0.9rem;
+}
+
+.onb-resumen span {
+  color: var(--suave);
+}
+
+.onb-opciones,
+.onb-paises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onb-opciones button,
+.onb-paises button {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1.5px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.onb-opciones button {
+  flex: 1 1 0;
+  min-width: 56px;
+  padding: 10px 6px;
+  white-space: nowrap;
+}
+
+.onb-paises {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.onb-paises button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.onb-paises b {
+  font-size: 1.25rem;
+}
+
+.onb-opciones button.activo,
+.onb-paises button.activo {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.onb-ejemplo {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--marino);
+  color: #fff;
+}
+
+.onb-ejemplo > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a9b6c8;
+}
+
+.onb-ejemplo p {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.onb-ejemplo strong {
+  font-size: 1.35rem;
+  color: var(--menta);
+}
+
+.onb-ejemplo .ok {
+  color: var(--menta);
+}
+
+.onb-pie {
+  padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.onb-pie .btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+.onb-nav {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+
+.onb-saltar {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--suave);
+  font-weight: 600;
+  font-size: 0.9rem;
+}

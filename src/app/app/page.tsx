@@ -5,6 +5,7 @@ import { ProveedorEstado, formatoDinero, useEstado } from "@/lib/estado";
 import { PanelDisenar } from "@/components/PanelDisenar";
 import { PanelArmado, PanelCortes, PanelCotizar, PanelLaminas } from "@/components/PanelesResultado";
 import { PanelPrecios } from "@/components/PanelPrecios";
+import { Onboarding } from "@/components/Onboarding";
 
 const PESTANAS = [
   { id: "disenar", etiqueta: "Diseñar", icono: "M4 20h16M6 16V8l6-4 6 4v8M10 16v-4h4v4" },
@@ -17,11 +18,12 @@ const PESTANAS = [
 type Id = (typeof PESTANAS)[number]["id"] | "precios";
 
 function App() {
-  const { listo, resultado, precios, items, nuevoProyecto } = useEstado();
+  const { listo, resultado, precios, items, nuevoProyecto, configurado } = useEstado();
   const [tab, setTab] = useState<Id>("disenar");
   if (!listo) return <div className="cargando">Cargando…</div>;
   return (
     <div className="app">
+      {!configurado && <Onboarding />}
       <header className="barra">
         <div className="marca">
           {/* eslint-disable-next-line @next/next/no-img-element */}
