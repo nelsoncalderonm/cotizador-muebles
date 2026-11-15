@@ -6,6 +6,7 @@ import { textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
 import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
+import { esPuerta } from "@/lib/motor/constructor";
 
 function Vacio() {
   return <p className="vacio">Agrega al menos un mueble en la pestaña Diseñar.</p>;
@@ -172,7 +173,7 @@ export function PanelArmado() {
   const conocidas = new Set(pasos.flatMap((x) => x.piezas));
   const visibles = new Set(pasos.slice(0, p + 1).flatMap((x) => x.piezas));
   const resaltar = new Set(pasos[p]?.piezas ?? []);
-  const conFrentes = pasos.slice(0, p + 1).some((x) => x.piezas.some((id) => id === "puerta" || id.endsWith("_frente")));
+  const conFrentes = pasos.slice(0, p + 1).some((x) => x.piezas.some((id) => esPuerta(id) || id.endsWith("_frente")));
   return (
     <div className="panel">
       <div className="panel-cab">

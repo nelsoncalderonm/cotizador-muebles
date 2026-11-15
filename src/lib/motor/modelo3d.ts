@@ -1,6 +1,7 @@
 // Modelo 3D del mueble a partir del resultado del motor: cada pieza como un bloque con espesor y profundidad reales.
 // Ejes: x a la derecha, y hacia arriba, z hacia el frente (la cara trasera del mueble está en z = 0). Medidas en mm.
 
+import { esPuerta as idPuerta } from "./constructor";
 import type { Configuracion, ResultadoMueble } from "./tipos";
 
 export type TipoBloque = "cuerpo" | "frente" | "fondo" | "metal";
@@ -38,7 +39,7 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
   const tieneFondo = res.vista.rects.some((r) => r.piezaId === "fondo");
   const z0 = tieneFondo ? eFondo : 0;
   const bloques: Bloque[] = [];
-  const puertas = res.vista.rects.filter((r) => r.tipo === "frente" && r.piezaId === "puerta");
+  const puertas = res.vista.rects.filter((r) => r.tipo === "frente" && idPuerta(r.piezaId));
 
   for (const r of res.vista.rects) {
     const caja = (z: number, d: number, tipo: TipoBloque = "cuerpo") => bloques.push({ piezaId: r.piezaId, tipo, forma: "caja", x: r.x, y: r.y, z, w: r.w, h: r.h, d });
@@ -79,12 +80,13 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
         break;
       default:
         if (r.tipo === "frente") {
-          const esPuerta = r.piezaId === "puerta";
+          const esPuerta = idPuerta(r.piezaId);
           let bisagra: "izq" | "der" = "izq";
           if (esPuerta) {
-            const i = puertas.indexOf(r);
-            // en pares: la impar abre a la izquierda y la par a la derecha
-            bisagra = puertas.length > 1 && i % 2 === 1 ? "der" : "izq";
+            // en pares por fila (misma altura): la primera abre a la izquierda y la segunda a la derecha
+            const fila = puertas.filter((q) => Math.abs(q.y - r.y) < 20).sort((a, b) => a.x - b.x);
+            const i = fila.indexOf(r);
+            bisagra = fila.length > 1 && i % 2 === 1 ? "der" : "izq";
           }
           const idx = bloques.length;
           bloques.push({
@@ -102,7 +104,9 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
           if (esPuerta) {
             const largo = Math.min(JALADERA.largo * 1.5, r.h * 0.4);
             const x = bisagra === "izq" ? r.x + r.w - 45 : r.x + 45 - JALADERA.grosor;
-            const yCentro = r.y + r.h > 1400 ? r.y + Math.min(r.h / 2, 1050 - r.y) : r.y + r.h - 70 - largo / 2;
+            // puertas altas (sobre ~90 cm): tirador abajo; puertas largas: a la altura de la mano; resto: arriba
+            const yCentro =
+              r.y > 900 ? r.y + 70 + largo / 2 : r.y + r.h > 1400 ? r.y + Math.min(r.h / 2, 1050 - r.y) : r.y + r.h - 70 - largo / 2;
             bloques.push({ piezaId: "jaladera", tipo: "metal", forma: "caja", x, y: yCentro - largo / 2, z: F + eF, w: JALADERA.grosor, h: largo, d: JALADERA.salida, padre: idx });
           } else {
             const largo = Math.min(JALADERA.largo * 1.5, r.w * 0.5);
@@ -117,6 +121,8 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
             parte(xi + e, yi, zi + di - e, wi - 2 * e, hi, e);
             parte(xi, yi - eFondo, zi, wi, eFondo, di);
           }
+        } else if (r.piezaId.startsWith("entrepano") && r.piezaId !== "entrepano_fijo") {
+          caja(z0, F - z0 - 20);
         } else if (r.tipo === "estructura") {
           caja(z0, F - z0);
         }

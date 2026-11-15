@@ -7,6 +7,7 @@ import { calcularProyecto } from "@/lib/motor/proyecto";
 import { formatoDinero } from "@/lib/estado";
 import { VistaMueble } from "../VistaMueble";
 import { LaminaSvg } from "../LaminaSvg";
+import { esPuerta } from "@/lib/motor/constructor";
 
 const MEDIDAS = [
   { ancho: 600, alto: 720 },
@@ -45,7 +46,7 @@ export function DemoTelefono() {
   const conocidas = new Set(pasos.flatMap((x) => x.piezas));
   const visibles = new Set(pasos.slice(0, p + 1).flatMap((x) => x.piezas));
   const resaltar = paso < pasos.length ? new Set(pasos[p].piezas) : new Set<string>();
-  const frentes = pasos.slice(0, p + 1).some((x) => x.piezas.some((id) => id === "puerta" || id.endsWith("_frente")));
+  const frentes = pasos.slice(0, p + 1).some((x) => x.piezas.some((id) => esPuerta(id) || id.endsWith("_frente")));
 
   return (
     <div className="ld-telefono" aria-hidden>

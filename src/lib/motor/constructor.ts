@@ -257,6 +257,9 @@ export class Constructor {
   }
 }
 
+/** Las puertas usan el id "puerta" o "puerta_xxx" (p. ej. "puerta_sup" en el despensero). */
+export const esPuerta = (id: string) => id === "puerta" || id.startsWith("puerta_");
+
 export const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
 export const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
 export const str = (v: unknown, d: string) => (typeof v === "string" ? v : d);

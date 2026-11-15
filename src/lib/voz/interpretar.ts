@@ -94,6 +94,10 @@ function aMilimetros(valor: number, unidad: string | undefined) {
 }
 
 const MUEBLES: { id: string; patron: RegExp }[] = [
+  { id: "mueble_tv", patron: /\b(mueble de (la )?(tv|tele|television)|rack|centro de entretenimiento|mueble tv)\b/ },
+  { id: "despensero", patron: /\b(despensero|despensa|columna|torre de cocina|mueble alto de cocina)\b/ },
+  { id: "zapatero", patron: /\b(zapatero|zapatera|mueble de zapatos|para zapatos)\b/ },
+  { id: "vanitorio", patron: /\b(vanitorio|vanity|mueble de bano|lavamanos|lavatorio|mueble del bano)\b/ },
   { id: "aereo_cocina", patron: /\b(aereo|superior|alacena|de colgar|colgante)\b/ },
   { id: "bajo_cocina", patron: /\b(bajo|inferior|base|bajo mesada|cocina|lavaplatos|meson)\b/ },
   { id: "closet", patron: /\b(closet|clo[sc]et|ropero|armario|guardarropa|guardarropas)\b/ },

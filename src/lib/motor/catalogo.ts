@@ -284,7 +284,213 @@ function cajoneraGenerica(id: string, nombre: string, categoria: string, descrip
 const mesaNoche = cajoneraGenerica("mesa_noche", "Mesa de noche", "Dormitorio", "Mesa de noche con cajones.", { A: 450, H: 550, F: 400, n: 2 });
 const cajonera = cajoneraGenerica("cajonera", "Cajonera / cómoda", "Dormitorio", "Cómoda de cajones con zócalo.", { A: 800, H: 900, F: 450, n: 4 });
 
-export const CATALOGO: DefinicionMueble[] = [bajoCocina, aereoCocina, closet, librero, escritorio, mesaNoche, cajonera];
+const muebleTv: DefinicionMueble = {
+  id: "mueble_tv",
+  nombre: "Mueble de TV / rack",
+  categoria: "Sala y oficina",
+  descripcion: "Mueble bajo para TV con nicho central abierto y módulos laterales con puertas o cajones.",
+  parametros: [
+    { clave: "ancho", etiqueta: "Ancho", tipo: "medida", min: 900, max: 2800, defecto: 1800 },
+    { clave: "alto", etiqueta: "Alto del cuerpo", tipo: "medida", min: 300, max: 800, defecto: 450 },
+    { clave: "fondo", etiqueta: "Fondo", tipo: "medida", min: 300, max: 600, defecto: 400 },
+    { clave: "patas", etiqueta: "Alto de patas", tipo: "medida", min: 0, max: 250, defecto: 120, ayuda: "0 = apoyado en el piso" },
+    {
+      clave: "laterales",
+      etiqueta: "Módulos laterales",
+      tipo: "opcion",
+      defecto: "puertas",
+      opciones: [
+        { valor: "puertas", etiqueta: "Puertas" },
+        { valor: "cajones", etiqueta: "Cajones" },
+        { valor: "abierto", etiqueta: "Abiertos" },
+      ],
+    },
+    { clave: "anchoLateral", etiqueta: "Ancho de cada módulo lateral", tipo: "medida", min: 250, max: 700, defecto: 450 },
+    { clave: "cajones", etiqueta: "Cajones por lado", tipo: "entero", min: 1, max: 3, defecto: 2 },
+    { clave: "entrepano", etiqueta: "Entrepaño en el nicho central", tipo: "si_no", defecto: true },
+  ],
+  generar(p, cfg) {
+    const c = new Constructor(cfg);
+    const A = num(p.ancho, 1800), H = num(p.alto, 450), F = num(p.fondo, 400), P = num(p.patas, 120);
+    const laterales = str(p.laterales, "puertas");
+    const { ai, fi, e, yIni, altoHueco, piezasCaja } = c.caja({ A, H, F, yBase: P });
+    const aL = Math.min(num(p.anchoLateral, 450), (ai - 2 * e) / 2 - 150);
+    const anchoCentro = ai - 2 * aL - 2 * e;
+    if (P > 0) {
+      c.herraje("pata_niveladora", A > 1500 ? 6 : 4);
+      c.rect("pata", 40, 0, 40, P, "detalle");
+      c.rect("pata", A - 80, 0, 40, P, "detalle");
+    }
+    c.pieza("division", "División vertical", altoHueco, fi, 2, "cuerpo", CANTO_UN_LARGO);
+    c.rect("division", e + aL, yIni, e, altoHueco);
+    c.rect("division", A - e - aL - e, yIni, e, altoHueco);
+    c.herraje("tornillo", 2 * 2 * 3);
+    const conEntrepano = bool(p.entrepano, true);
+    if (conEntrepano) c.entrepanos("entrepano", 1, e + aL + e, yIni, anchoCentro, altoHueco, fi - 20);
+    if (anchoCentro < 400) c.advertencias.push(`El nicho central queda de ${Math.round(anchoCentro)} mm; achica los módulos laterales.`);
+    // cada frente lateral cubre el lateral y media división
+    const anchoFrente = e + aL + e / 2;
+    if (laterales === "puertas") {
+      c.puertas("puerta", 1, 0, P, anchoFrente, H);
+      c.puertas("puerta", 1, A - anchoFrente, P, anchoFrente, H);
+    } else if (laterales === "cajones") {
+      const n = num(p.cajones, 2);
+      c.cajones("cajon", n, aL, fi, 0, P, anchoFrente, H);
+      c.cajones("cajon", n, aL, fi, A - anchoFrente, P, anchoFrente, H);
+    }
+    c.cota(0, P + H, A, P + H, 80);
+    c.cota(A, P + H, A, 0, 80, `${Math.round(P + H)}`);
+    c.paso("Armar la caja", "Une piso y techo a los laterales con 3 tornillos por unión.", piezasCaja, ["tornillo"]);
+    c.paso("Colocar divisiones", `Atornilla las dos divisiones dejando ${Math.round(aL)} mm libres a cada lado y ${Math.round(anchoCentro)} mm para el nicho central.`, ["division"]);
+    c.paso("Clavar el fondo", "Mide diagonales y clava el fondo. Deja una perforación de 60 mm detrás del nicho para pasar los cables.", ["fondo"], ["clavo_fondo"]);
+    if (P > 0) c.paso("Instalar patas", "Atornilla las patas niveladoras al piso del mueble.", ["pata"], ["pata_niveladora"]);
+    if (conEntrepano) c.paso("Colocar entrepaño", "Apoya el entrepaño del nicho sobre los soportes.", ["entrepano"], ["soporte_entrepano"]);
+    if (laterales === "puertas") c.paso("Colgar puertas", "Instala bisagras de cazoleta y regula las puertas laterales.", ["puerta"], ["bisagra"]);
+    if (laterales === "cajones") c.paso("Instalar cajones", "Arma las cajas, instala correderas y atornilla los frentes.", ["cajon_frente"]);
+    return c.resultado(A, P + H);
+  },
+};
+
+const despensero: DefinicionMueble = {
+  id: "despensero",
+  nombre: "Despensero / columna",
+  categoria: "Cocina",
+  descripcion: "Mueble alto de cocina con puertas arriba y abajo, entrepaño fijo al medio y entrepaños móviles.",
+  parametros: [
+    { clave: "ancho", etiqueta: "Ancho", tipo: "medida", min: 400, max: 1000, defecto: 600 },
+    { clave: "alto", etiqueta: "Alto", tipo: "medida", min: 1500, max: 2440, defecto: 2100 },
+    { clave: "fondo", etiqueta: "Fondo", tipo: "medida", min: 300, max: 650, defecto: 560 },
+    { clave: "zocalo", etiqueta: "Alto del zócalo", tipo: "medida", min: 0, max: 150, defecto: 100 },
+    { clave: "altoInferior", etiqueta: "Alto de puertas inferiores", tipo: "medida", min: 600, max: 1800, defecto: 1300 },
+    { clave: "entrepanosInf", etiqueta: "Entrepaños abajo", tipo: "entero", min: 0, max: 6, defecto: 3 },
+    { clave: "entrepanosSup", etiqueta: "Entrepaños arriba", tipo: "entero", min: 0, max: 3, defecto: 1 },
+  ],
+  generar(p, cfg) {
+    const c = new Constructor(cfg);
+    const A = num(p.ancho, 600), H = num(p.alto, 2100), F = num(p.fondo, 560), z = num(p.zocalo, 100);
+    const { ai, fi, e, yIni, piezasCaja } = c.caja({ A, H, F, zocalo: z });
+    const hInf = Math.min(num(p.altoInferior, 1300), H - z - 300);
+    const yFijo = z + hInf - e / 2;
+    c.pieza("entrepano_fijo", "Entrepaño fijo (medio)", ai, fi, 1, "cuerpo", CANTO_UN_LARGO);
+    c.rect("entrepano_fijo", e, yFijo, ai, e);
+    c.herraje("tornillo", 4);
+    const nInf = num(p.entrepanosInf, 3), nSup = num(p.entrepanosSup, 1);
+    c.entrepanos("entrepano", nInf, e, yIni, ai, yFijo - yIni, fi - 20);
+    c.entrepanos("entrepano_sup", nSup, e, yFijo + e, ai, H - e - (yFijo + e), fi - 20);
+    const np = A > 600 ? 2 : 1;
+    c.puertas("puerta", np, 0, z, A, hInf);
+    c.puertas("puerta_sup", np, 0, z + hInf, A, H - z - hInf);
+    c.cota(0, H, A, H, 80);
+    c.cota(A, H, A, 0, 80);
+    c.cota(-1, z, -1, z + hInf, 80, `${Math.round(hInf)}`);
+    c.paso("Armar la caja", "Arma el mueble acostado: une piso y techo a los laterales con 3 tornillos por unión.", piezasCaja.filter((x) => x !== "zocalo"), ["tornillo"]);
+    if (z > 0) c.paso("Colocar el zócalo", "Atornilla el zócalo al frente, debajo del piso.", ["zocalo"]);
+    c.paso("Entrepaño fijo", `Atornilla el entrepaño fijo a ${Math.round(yFijo)} mm del piso: le da rigidez a la columna y separa las dos puertas.`, ["entrepano_fijo"]);
+    c.paso("Clavar el fondo", "Mide diagonales y clava el fondo. Fija el mueble a la pared: es alto y puede volcarse.", ["fondo"], ["clavo_fondo"]);
+    if (nInf + nSup > 0) c.paso("Poner entrepaños", "Perfora para los soportes y apoya los entrepaños móviles.", ["entrepano", "entrepano_sup"], ["soporte_entrepano"]);
+    c.paso("Colgar puertas", "Instala las bisagras y regula las puertas inferiores y superiores para que la junta quede pareja.", ["puerta", "puerta_sup"], ["bisagra"]);
+    return c.resultado(A, H);
+  },
+};
+
+const zapatero: DefinicionMueble = {
+  id: "zapatero",
+  nombre: "Zapatero",
+  categoria: "Dormitorio",
+  descripcion: "Mueble de poco fondo con puertas y varios entrepaños para zapatos.",
+  parametros: [
+    { clave: "ancho", etiqueta: "Ancho", tipo: "medida", min: 400, max: 1400, defecto: 800 },
+    { clave: "alto", etiqueta: "Alto", tipo: "medida", min: 500, max: 2000, defecto: 1000 },
+    { clave: "fondo", etiqueta: "Fondo", tipo: "medida", min: 250, max: 450, defecto: 350 },
+    { clave: "zocalo", etiqueta: "Alto del zócalo", tipo: "medida", min: 0, max: 150, defecto: 60 },
+    { clave: "puertas", etiqueta: "Número de puertas", tipo: "entero", min: 0, max: 3, defecto: 2, ayuda: "0 = abierto" },
+    { clave: "entrepanos", etiqueta: "Entrepaños", tipo: "entero", min: 1, max: 10, defecto: 4 },
+  ],
+  generar(p, cfg) {
+    const c = new Constructor(cfg);
+    const A = num(p.ancho, 800), H = num(p.alto, 1000), F = num(p.fondo, 350), z = num(p.zocalo, 60);
+    const { ai, fi, e, yIni, altoHueco, piezasCaja } = c.caja({ A, H, F, zocalo: z });
+    const n = num(p.entrepanos, 4);
+    c.entrepanos("entrepano", n, e, yIni, ai, altoHueco, fi - 20);
+    const np = num(p.puertas, 2);
+    c.puertas("puerta", np, 0, z, A, H - z);
+    const separacion = (altoHueco - n * e) / (n + 1);
+    if (separacion < 130) c.advertencias.push(`Quedan ${Math.round(separacion)} mm entre entrepaños: muy poco para zapatos (mín. 130 mm).`);
+    c.cota(0, H, A, H, 80);
+    c.cota(A, H, A, 0, 80);
+    c.paso("Armar la caja", "Une piso y techo a los laterales con 3 tornillos por unión.", piezasCaja.filter((x) => x !== "zocalo"), ["tornillo"]);
+    if (z > 0) c.paso("Colocar el zócalo", "Atornilla el zócalo al frente, debajo del piso.", ["zocalo"]);
+    c.paso("Clavar el fondo", "Mide diagonales y clava el fondo. Puedes dejar perforaciones de ventilación de 8 mm.", ["fondo"], ["clavo_fondo"]);
+    c.paso("Poner entrepaños", `Apoya los entrepaños cada ${Math.round(separacion + e)} mm sobre los soportes.`, ["entrepano"], ["soporte_entrepano"]);
+    if (np > 0) c.paso("Colgar puertas", "Instala bisagras de cazoleta y regula las puertas.", ["puerta"], ["bisagra"]);
+    return c.resultado(A, H);
+  },
+};
+
+const vanitorio: DefinicionMueble = {
+  id: "vanitorio",
+  nombre: "Vanitorio de baño",
+  categoria: "Baño",
+  descripcion: "Mueble bajo lavamanos, colgado o sobre patas, con puertas o cajones y espacio para el sifón.",
+  parametros: [
+    { clave: "ancho", etiqueta: "Ancho", tipo: "medida", min: 400, max: 1500, defecto: 800 },
+    { clave: "alto", etiqueta: "Alto del cuerpo", tipo: "medida", min: 350, max: 900, defecto: 500 },
+    { clave: "fondo", etiqueta: "Fondo", tipo: "medida", min: 350, max: 600, defecto: 460 },
+    {
+      clave: "montaje",
+      etiqueta: "Montaje",
+      tipo: "opcion",
+      defecto: "colgado",
+      opciones: [
+        { valor: "colgado", etiqueta: "Colgado" },
+        { valor: "patas", etiqueta: "Sobre patas" },
+      ],
+    },
+    { clave: "altura", etiqueta: "Altura desde el piso", tipo: "medida", min: 0, max: 600, defecto: 350, ayuda: "Colgado: altura bajo el mueble. Patas: alto de la pata." },
+    {
+      clave: "frente",
+      etiqueta: "Tipo de frente",
+      tipo: "opcion",
+      defecto: "puertas",
+      opciones: [
+        { valor: "puertas", etiqueta: "Puertas" },
+        { valor: "cajones", etiqueta: "Cajones" },
+      ],
+    },
+    { clave: "puertas", etiqueta: "Número de puertas", tipo: "entero", min: 1, max: 2, defecto: 2 },
+    { clave: "cajones", etiqueta: "Número de cajones", tipo: "entero", min: 1, max: 3, defecto: 2 },
+  ],
+  generar(p, cfg) {
+    const c = new Constructor(cfg);
+    const A = num(p.ancho, 800), H = num(p.alto, 500), F = num(p.fondo, 460);
+    const montaje = str(p.montaje, "colgado");
+    const yB = num(p.altura, 350);
+    const frente = str(p.frente, "puertas");
+    const { ai, fi, piezasCaja } = c.caja({ A, H, F, yBase: yB, superior: "travesanos" });
+    if (montaje === "patas" && yB > 0) {
+      c.herraje("pata_niveladora", 4);
+      c.rect("pata", 40, 0, 40, yB, "detalle");
+      c.rect("pata", A - 80, 0, 40, yB, "detalle");
+    } else c.herraje("colgador_mueble", 2);
+    if (frente === "puertas") c.puertas("puerta", num(p.puertas, 2), 0, yB, A, H);
+    else {
+      c.cajones("cajon", num(p.cajones, 2), ai, Math.min(fi, 400), 0, yB, A, H);
+      c.advertencias.push("Con cajones, recorta la parte trasera de la caja del cajón superior para dejar paso al sifón.");
+    }
+    c.cota(0, yB + H, A, yB + H, 80);
+    c.cota(A, yB + H, A, 0, 80, `${Math.round(yB + H)}`);
+    c.paso("Armar la caja", "Une el piso entre los laterales y los dos travesaños superiores. Usa melamina hidrófuga si la consigues.", piezasCaja, ["tornillo"]);
+    c.paso("Clavar el fondo", "Clava el fondo y perfora el paso del desagüe y de las llaves de agua.", ["fondo"], ["clavo_fondo"]);
+    if (montaje === "patas" && yB > 0) c.paso("Instalar patas", "Atornilla las patas niveladoras al piso del mueble.", ["pata"], ["pata_niveladora"]);
+    else c.paso("Colgar el mueble", `Fija los colgadores a la pared con tarugos, con la base a ${Math.round(yB)} mm del piso.`, [], ["colgador_mueble"]);
+    if (frente === "puertas") c.paso("Colgar puertas", "Instala bisagras de cazoleta y regula las puertas.", ["puerta"], ["bisagra"]);
+    else c.paso("Instalar cajones", "Arma las cajas, instala correderas y atornilla los frentes.", ["cajon_frente"]);
+    c.paso("Sellar", "Sella con silicona el contorno del lavamanos y los cantos cercanos al agua.", []);
+    return c.resultado(A, yB + H);
+  },
+};
+
+export const CATALOGO: DefinicionMueble[] = [bajoCocina, aereoCocina, despensero, closet, zapatero, librero, escritorio, muebleTv, mesaNoche, cajonera, vanitorio];
 
 export function buscarMueble(id: string) {
   return CATALOGO.find((m) => m.id === id);
