@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { acabado, jaladera, type Acabado, type AcabadosItem } from "@/lib/acabados";
 import type { Bloque, Modelo3D } from "@/lib/motor/modelo3d";
 
@@ -23,6 +24,16 @@ function texturaAcabado(a: Acabado) {
     return semilla / 2147483647;
   };
   if (a.veta) {
+    // franjas anchas de tono (tablones) para que la madera no se vea plana
+    const base = new THREE.Color(a.base);
+    const claro = base.clone().lerp(new THREE.Color("#ffffff"), 0.1);
+    const oscuro = base.clone().lerp(new THREE.Color(a.veta), 0.45);
+    for (let x = 0; x < c.width; x += 2) {
+      const t = Math.sin(x * 0.021 + Math.sin(x * 0.0063) * 3) * 0.5 + 0.5;
+      g.globalAlpha = 0.5;
+      g.fillStyle = `#${claro.clone().lerp(oscuro, t * 0.4).getHexString()}`;
+      g.fillRect(x, 0, 2, c.height);
+    }
     // vetas largas onduladas
     for (let i = 0; i < 260; i++) {
       const x0 = azar() * c.width;
@@ -53,7 +64,16 @@ function texturaAcabado(a: Acabado) {
       }
     }
   }
+  if (a.veta) {
+    // poros alargados
+    g.fillStyle = a.veta;
+    for (let i = 0; i < 4000; i++) {
+      g.globalAlpha = 0.05 + azar() * 0.08;
+      g.fillRect(azar() * c.width, azar() * c.height, 1, 3 + azar() * 6);
+    }
+  }
   // grano fino
+  g.globalAlpha = 1;
   const img = g.getImageData(0, 0, c.width, c.height);
   for (let i = 0; i < img.data.length; i += 4) {
     const n = (azar() - 0.5) * (a.veta ? 14 : 7);
@@ -70,30 +90,24 @@ function texturaAcabado(a: Acabado) {
   return t;
 }
 
-/** Ajusta las coordenadas UV para que la veta tenga escala real y siga el lado largo de la pieza. */
-function cajaConUV(w: number, h: number, d: number) {
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const uv = geo.attributes.uv as THREE.BufferAttribute;
-  const escala = 0.6; // metros por repetición de textura
+/**
+ * Tablero con cantos levemente redondeados (como el canto PVC real) y UV en escala real:
+ * la veta mide lo mismo en todas las piezas y sigue su lado largo. `desfase` evita que todas las piezas repitan la misma veta.
+ */
+function cajaConUV(w: number, h: number, d: number, desfase = 0) {
+  const radio = Math.min(0.0015, w / 2.2, h / 2.2, d / 2.2);
+  const geo = new RoundedBoxGeometry(w, h, d, 2, radio);
+  const pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv as THREE.BufferAttribute;
+  const k = 1 / 0.6; // repeticiones de textura por metro
   const vetaHorizontal = w > h;
-  // orden de caras de BoxGeometry: +x, -x, +y, -y, +z, -z (4 vértices cada una)
-  const caras: [number, number][] = [
-    [d, h],
-    [d, h],
-    [w, d],
-    [w, d],
-    [w, h],
-    [w, h],
-  ];
-  for (let f = 0; f < 6; f++) {
-    const [fu, fv] = caras[f];
-    for (let k = 0; k < 4; k++) {
-      const i = f * 4 + k;
-      const u = uv.getX(i) * (fu / escala);
-      const v = uv.getY(i) * (fv / escala);
-      if (vetaHorizontal) uv.setXY(i, v, u);
-      else uv.setXY(i, u, v);
-    }
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const nx = Math.abs(nor.getX(i)), ny = Math.abs(nor.getY(i)), nz = Math.abs(nor.getZ(i));
+    let a: number, b: number; // a = través de la veta, b = a lo largo
+    if (nz >= nx && nz >= ny) [a, b] = vetaHorizontal ? [y, x] : [x, y];
+    else if (nx >= ny) [a, b] = vetaHorizontal ? [y, z] : [z, y];
+    else [a, b] = vetaHorizontal ? [z, x] : [x, z];
+    uv.setXY(i, a * k + desfase, b * k + desfase * 0.37);
   }
   uv.needsUpdate = true;
   return geo;
@@ -269,8 +283,11 @@ export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
     const tFrente = aFrente.id === aCuerpo.id ? tCuerpo : texturaAcabado(aFrente);
     s.texturas.push(tCuerpo);
     if (tFrente !== tCuerpo) s.texturas.push(tFrente);
-    const matCuerpo = () => new THREE.MeshStandardMaterial({ map: tCuerpo, roughness: aCuerpo.rugosidad, metalness: 0 });
-    const matFrente = () => new THREE.MeshStandardMaterial({ map: tFrente, roughness: aFrente.rugosidad, metalness: 0 });
+    // melamina: base mate con una capa muy fina de brillo, como el laminado real
+    const melamina = (map: THREE.Texture, a: Acabado) =>
+      new THREE.MeshPhysicalMaterial({ map, roughness: a.rugosidad, metalness: 0, clearcoat: a.veta ? 0.08 : 0.15, clearcoatRoughness: 0.55 });
+    const matCuerpo = () => melamina(tCuerpo, aCuerpo);
+    const matFrente = () => melamina(tFrente, aFrente);
     const matFondo = () => new THREE.MeshStandardMaterial({ map: tCuerpo, roughness: 0.8, color: "#d9d4cc" });
     const matMetal = () => new THREE.MeshStandardMaterial({ color: met.color, metalness: met.metal, roughness: met.rugosidad });
     const matPata = () => new THREE.MeshStandardMaterial({ color: "#2a2a2c", roughness: 0.5, metalness: 0.2 });
@@ -278,13 +295,14 @@ export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
     const { ancho: A, alto: H, fondo: F } = modelo;
     const X = (x: number) => (x - A / 2) * MM;
 
+    let n = 0;
     const malla = (b: Bloque) => {
       let geo: THREE.BufferGeometry;
       if (b.forma === "cilindro_v") geo = new THREE.CylinderGeometry((b.w / 2) * MM, (b.w / 2) * MM * 1.1, b.h * MM, 24);
       else if (b.forma === "cilindro_h") {
         geo = new THREE.CylinderGeometry((b.h / 2) * MM, (b.h / 2) * MM, b.w * MM, 20);
         geo.rotateZ(Math.PI / 2);
-      } else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM);
+      } else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM, (n++ * 0.173) % 1);
       const mat =
         b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? (b.piezaId === "pata" ? matPata() : matMetal()) : matCuerpo();
       const m = new THREE.Mesh(geo, mat);

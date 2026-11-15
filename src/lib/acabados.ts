@@ -23,6 +23,8 @@ export const ACABADOS: Acabado[] = [
   { id: "negro", nombre: "Negro mate", base: "#1f1f21", rugosidad: 0.7 },
   { id: "salvia", nombre: "Verde salvia", base: "#8e9b84", rugosidad: 0.55 },
   { id: "petroleo", nombre: "Azul petróleo", base: "#2f4a56", rugosidad: 0.5 },
+  { id: "marino", nombre: "Azul marino", base: "#1f3350", rugosidad: 0.5 },
+  { id: "arena", nombre: "Arena", base: "#d8cbb4", rugosidad: 0.5 },
   { id: "roble_claro", nombre: "Roble claro", base: "#d9bf96", veta: "#b8956a", rugosidad: 0.6 },
   { id: "roble", nombre: "Roble natural", base: "#c49a68", veta: "#966c40", rugosidad: 0.6 },
   { id: "cerezo", nombre: "Cerezo", base: "#a3613f", veta: "#7a4227", rugosidad: 0.55 },
@@ -45,7 +47,11 @@ export interface AcabadosItem {
 
 export const ACABADOS_DEFECTO: AcabadosItem = { cuerpo: "blanco", frente: "roble", jaladera: "negro" };
 
-export const acabado = (id: string) => ACABADOS.find((a) => a.id === id) ?? ACABADOS[0];
+/** Color libre elegido con "Otro color" (se guarda como "#rrggbb"). */
+export const esColorLibre = (id: string) => /^#[0-9a-f]{6}$/i.test(id);
+
+export const acabado = (id: string): Acabado =>
+  ACABADOS.find((a) => a.id === id) ?? (esColorLibre(id) ? { id, nombre: "Otro color", base: id, rugosidad: 0.5 } : ACABADOS[0]);
 export const jaladera = (id: string) => JALADERAS.find((a) => a.id === id) ?? JALADERAS[0];
 
 /** Fondo CSS para las muestras del selector. */

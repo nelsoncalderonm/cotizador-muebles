@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
-import { ACABADOS, ACABADOS_DEFECTO, JALADERAS, muestraCss, type AcabadosItem } from "@/lib/acabados";
+import { ACABADOS, ACABADOS_DEFECTO, JALADERAS, acabado, esColorLibre, muestraCss, type AcabadosItem } from "@/lib/acabados";
 import { useEstado } from "@/lib/estado";
 import { modelo3d } from "@/lib/motor/modelo3d";
 import type { ItemProyecto } from "@/lib/motor/proyecto";
@@ -25,6 +25,11 @@ function ModalAcabados({ valor, onCambio, onCerrar }: { valor: AcabadosItem; onC
             <span>{a.nombre}</span>
           </button>
         ))}
+        <label className={`muestra-libre${esColorLibre(valor[clave]) ? " activo" : ""}`} title="Elegir cualquier color">
+          <i style={{ background: esColorLibre(valor[clave]) ? valor[clave] : "conic-gradient(#e44, #ec4, #4c6, #4ae, #a4e, #e44)" }} />
+          <span>Otro color</span>
+          <input type="color" value={esColorLibre(valor[clave]) ? valor[clave] : "#cc8844"} onChange={(e) => onCambio({ ...valor, [clave]: e.target.value })} />
+        </label>
       </div>
     </section>
   );
@@ -112,8 +117,8 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
           <div className="visor-acciones">
             <button className="btn-flotante" onClick={() => setColores(true)}>
               <i className="mini-muestras" aria-hidden>
-                <b style={{ background: muestraCss(ACABADOS.find((a) => a.id === acabados.frente) ?? ACABADOS[0]) }} />
-                <b style={{ background: muestraCss(ACABADOS.find((a) => a.id === acabados.cuerpo) ?? ACABADOS[0]) }} />
+                <b style={{ background: muestraCss(acabado(acabados.frente)) }} />
+                <b style={{ background: muestraCss(acabado(acabados.cuerpo)) }} />
               </i>
               Colores
             </button>

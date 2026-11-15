@@ -1149,7 +1149,10 @@ p.avisos {
   gap: 8px;
 }
 
-.muestras button {
+.muestras button,
+.muestra-libre {
+  position: relative;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1163,7 +1166,8 @@ p.avisos {
   text-align: center;
 }
 
-.muestras button.activo {
+.muestras button.activo,
+.muestra-libre.activo {
   border-color: var(--menta);
   background: var(--acento-suave);
 }
@@ -1173,4 +1177,13 @@ p.avisos {
   height: 44px;
   border-radius: 10px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.muestra-libre input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
