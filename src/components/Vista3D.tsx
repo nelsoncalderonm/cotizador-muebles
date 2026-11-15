@@ -7,6 +7,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { acabado, jaladera, type Acabado, type AcabadosItem } from "@/lib/acabados";
 import type { Bloque, Modelo3D } from "@/lib/motor/modelo3d";
+import { crearEscenario, type Escenario } from "@/lib/escenarios";
 
 const MM = 0.001;
 
@@ -122,6 +123,7 @@ interface Escena {
   luz: THREE.DirectionalLight;
   moviles: { obj: THREE.Object3D; clase: "puerta" | "cajon"; signo: number; orden: number; recorrido: number }[];
   abierto: boolean;
+  ambiente: THREE.Group;
   ultimoTamano: number;
   texturas: THREE.Texture[];
 }
@@ -130,10 +132,11 @@ interface Props {
   modelo: Modelo3D;
   acabados: AcabadosItem;
   abierto: boolean;
+  escenario?: Escenario;
   onListo?: (capturar: () => Blob | null) => void;
 }
 
-export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
+export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", onListo }: Props) {
   const contenedor = useRef<HTMLDivElement>(null);
   const escena = useRef<Escena | null>(null);
   const [sinWebgl, setSinWebgl] = useState(false);
@@ -162,19 +165,8 @@ export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environmentIntensity = 0.55;
 
-    // habitación: piso y pared
-    const piso = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: "#cfc6b8", roughness: 0.85 }));
-    piso.rotation.x = -Math.PI / 2;
-    piso.receiveShadow = true;
-    scene.add(piso);
-    const pared = new THREE.Mesh(new THREE.PlaneGeometry(20, 10), new THREE.MeshStandardMaterial({ color: "#efebe5", roughness: 0.95 }));
-    pared.position.set(0, 5, -0.004);
-    pared.receiveShadow = true;
-    scene.add(pared);
-    const rodapie = new THREE.Mesh(new THREE.BoxGeometry(20, 0.07, 0.012), new THREE.MeshStandardMaterial({ color: "#f6f4f0", roughness: 0.6 }));
-    rodapie.position.set(0, 0.035, 0.002);
-    rodapie.receiveShadow = true;
-    scene.add(rodapie);
+    const ambiente = new THREE.Group();
+    scene.add(ambiente);
 
     scene.add(new THREE.HemisphereLight("#ffffff", "#b8a890", 0.55));
     const luz = new THREE.DirectionalLight("#fff6ea", 2.1);
@@ -198,7 +190,7 @@ export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
     const grupo = new THREE.Group();
     scene.add(grupo);
 
-    const s: Escena = { renderer, scene, camera, controls, grupo, luz, moviles: [], abierto: false, ultimoTamano: 0, texturas: [] };
+    const s: Escena = { renderer, scene, camera, controls, grupo, luz, moviles: [], abierto: false, ambiente, ultimoTamano: 0, texturas: [] };
     escena.current = s;
 
     const ajustar = () => {
@@ -368,6 +360,25 @@ export function Vista3D({ modelo, acabados, abierto, onListo }: Props) {
   useEffect(() => {
     if (escena.current) escena.current.abierto = abierto;
   }, [abierto]);
+
+  // Ambiente (estudio, habitación o sala)
+  useEffect(() => {
+    const s = escena.current;
+    if (!s) return;
+    s.ambiente.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) {
+        m.geometry.dispose();
+        const mat = m.material as THREE.MeshStandardMaterial;
+        mat.map?.dispose();
+        mat.dispose();
+      }
+    });
+    s.ambiente.clear();
+    const { grupo, fondo } = crearEscenario(escenario, modelo.ancho * MM, modelo.alto * MM);
+    s.ambiente.add(grupo);
+    s.scene.background = new THREE.Color(fondo);
+  }, [escenario, modelo.ancho, modelo.alto]);
 
   return (
     <div ref={contenedor} className="vista3d">

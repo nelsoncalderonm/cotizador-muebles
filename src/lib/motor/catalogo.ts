@@ -17,10 +17,12 @@ const librero: DefinicionMueble = {
     { clave: "entrepanos", etiqueta: "Entrepaños por columna", tipo: "entero", min: 0, max: 12, defecto: 4 },
     { clave: "zocalo", etiqueta: "Alto del zócalo", tipo: "medida", min: 0, max: 150, defecto: 60, ayuda: "0 = sin zócalo" },
     { clave: "conFondo", etiqueta: "Con fondo trasero", tipo: "si_no", defecto: true },
+    { clave: "puertasAbajo", etiqueta: "Alto de puertas abajo", tipo: "medida", min: 0, max: 1200, defecto: 0, ayuda: "0 = sin puertas; ej. 800 para biblioteca con gabinete" },
   ],
   generar(p, cfg) {
     const c = new Constructor(cfg);
     const A = num(p.ancho, 800), H = num(p.alto, 1800), F = num(p.fondo, 300);
+    const alturaPuertas = num(p.puertasAbajo, 0);
     const cols = Math.max(1, Math.round(num(p.columnas, 1)));
     const n = Math.round(num(p.entrepanos, 4));
     const conFondo = bool(p.conFondo, true);
@@ -30,11 +32,20 @@ const librero: DefinicionMueble = {
       c.pieza("division", "División vertical", altoHueco, fi, cols - 1, "cuerpo", CANTO_UN_LARGO);
       c.herraje("tornillo", (cols - 1) * 2 * 3);
     }
+    const conPuertas = alturaPuertas > 0 && alturaPuertas < altoHueco - 200;
+    const yFijo = yIni + alturaPuertas - num(p.zocalo, 60) - e;
     for (let i = 0; i < cols; i++) {
       const x = e + i * (anchoHueco + e);
       if (i > 0) c.rect("division", x - e, yIni, e, altoHueco);
-      c.entrepanos("entrepano", n, x, yIni, anchoHueco, altoHueco, fi - 20);
+      if (conPuertas) {
+        c.pieza("fijo", "Entrepaño fijo (sobre puertas)", anchoHueco, fi, 1, "cuerpo", CANTO_UN_LARGO);
+        c.rect("fijo", x, yFijo, anchoHueco, e);
+        c.herraje("tornillo", 4);
+        c.entrepanos("entrepano_bajo", 1, x, yIni, anchoHueco, yFijo - yIni, fi - 20);
+        c.entrepanos("entrepano", n, x, yFijo + e, anchoHueco, yIni + altoHueco - yFijo - e, fi - 20);
+      } else c.entrepanos("entrepano", n, x, yIni, anchoHueco, altoHueco, fi - 20);
     }
+    if (conPuertas) c.puertas("puerta", cols * (anchoHueco > 600 ? 2 : 1), 0, 0, A, yFijo + e);
     if (anchoHueco > 900) c.advertencias.push(`Los entrepaños miden ${Math.round(anchoHueco)} mm: con más de 900 mm se pandean. Agrega una columna.`);
     c.cota(0, H, A, H, 80);
     c.cota(A, H, A, 0, 80);
@@ -42,7 +53,9 @@ const librero: DefinicionMueble = {
     if (piezasCaja.includes("zocalo")) c.paso("Colocar el zócalo", "Atornilla el zócalo al frente, debajo del piso, a ras con los laterales.", ["zocalo"]);
     if (cols > 1) c.paso("Colocar divisiones", `Reparte ${cols - 1} división(es) a ${Math.round(anchoHueco)} mm libres entre caras. Atornilla desde arriba y desde abajo.`, ["division"]);
     if (conFondo) c.paso("Clavar el fondo", "Antes de clavar, mide las diagonales: deben ser iguales para que el mueble quede a escuadra.", ["fondo"], ["clavo_fondo"]);
+    if (conPuertas) c.paso("Fijar entrepaño sobre puertas", `Atornilla el entrepaño fijo a ${Math.round(yFijo)} mm del piso: es el techo del gabinete.`, ["fijo", "entrepano_bajo"]);
     if (n > 0) c.paso("Poner entrepaños", "Perfora para los soportes cada 32 mm o a la altura indicada y apoya los entrepaños.", ["entrepano"], ["soporte_entrepano"]);
+    if (conPuertas) c.paso("Colgar puertas", "Instala las bisagras de cazoleta y regula las puertas.", ["puerta"], ["bisagra"]);
     return c.resultado(A, H);
   },
 };
@@ -251,6 +264,7 @@ const closet: DefinicionMueble = {
     return c.resultado(A, H);
   },
 };
+
 
 function cajoneraGenerica(id: string, nombre: string, categoria: string, descripcion: string, d: { A: number; H: number; F: number; n: number }): DefinicionMueble {
   return {

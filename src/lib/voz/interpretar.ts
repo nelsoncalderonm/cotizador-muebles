@@ -73,7 +73,7 @@ export function normalizar(texto: string) {
   t = palabrasANumeros(t);
   // "1 metro y medio" → 1.5 m ; "1 metro 20" → 1.20 m
   t = t.replace(/(\d+) metros? y medio/g, (_, a) => `${Number(a) + 0.5} m`);
-  t = t.replace(/(\d+) metros? (?:con )?(\d{1,2})\b(?!\s*(?:cm|centimetros?|mm|milimetros?))/g, (_, a, b) => `${Number(a) + Number(b) / 100} m`);
+  t = t.replace(/(\d+) metros? (\d{1,2})\b(?!\s*(?:cm|centimetros?|mm|milimetros?))/g, (_, a, b) => `${Number(a) + Number(b) / 100} m`);
   t = t.replace(/\bmetro y medio\b/g, "1.5 m");
   t = t.replace(/\bmedio metro\b/g, "0.5 m");
   return t;
@@ -94,10 +94,10 @@ function aMilimetros(valor: number, unidad: string | undefined) {
 }
 
 const MUEBLES: { id: string; patron: RegExp }[] = [
-  { id: "mueble_tv", patron: /\b(mueble de (la )?(tv|tele|television)|rack|centro de entretenimiento|mueble tv)\b/ },
-  { id: "despensero", patron: /\b(despensero|despensa|columna|torre de cocina|mueble alto de cocina)\b/ },
-  { id: "zapatero", patron: /\b(zapatero|zapatera|mueble de zapatos|para zapatos)\b/ },
-  { id: "vanitorio", patron: /\b(vanitorio|vanity|mueble de bano|lavamanos|lavatorio|mueble del bano)\b/ },
+  { id: "mueble_tv", patron: /\b(mueble de (la )?(tv|tele|television)|rack|centro de entretenimiento|mueble tv|televisor|tele|tv)\b/ },
+  { id: "despensero", patron: /\b(despensero|despensa|columna|torre de cocina|mueble alto de cocina|alacena alta|mueble de piso a techo)\b/ },
+  { id: "zapatero", patron: /\b(zapatero|zapatera|mueble de zapatos|para zapatos|calzado)\b/ },
+  { id: "vanitorio", patron: /\b(vanitorio|vanity|mueble de bano|lavamanos|lavatorio|mueble del bano|lavabo|lavamano)\b/ },
   { id: "aereo_cocina", patron: /\b(aereo|superior|alacena|de colgar|colgante)\b/ },
   { id: "bajo_cocina", patron: /\b(bajo|inferior|base|bajo mesada|cocina|lavaplatos|meson)\b/ },
   { id: "closet", patron: /\b(closet|clo[sc]et|ropero|armario|guardarropa|guardarropas)\b/ },
@@ -119,6 +119,7 @@ const CONTEOS: { clave: string; palabras: string }[] = [
   { clave: "entrepanos", palabras: "entrepanos?|repisas?|baldas?|estantes?|niveles?" },
   { clave: "columnas", palabras: "columnas?|divisiones?" },
   { clave: "cuerpos", palabras: "cuerpos?|modulos?|secciones?" },
+  { clave: "entrepanosSup", palabras: "entrepanos? arriba" },
 ];
 
 export function interpretar(texto: string, muebleActual: string | null): Interpretacion {
@@ -153,9 +154,9 @@ export function interpretar(texto: string, muebleActual: string | null): Interpr
   const triple = t.match(new RegExp(`(\\d+(?:\\.\\d+)?) ?${UNIDAD} ?(?:x|por) ?(\\d+(?:\\.\\d+)?) ?${UNIDAD} ?(?:(?:x|por) ?(\\d+(?:\\.\\d+)?) ?${UNIDAD})?`));
   if (triple && !/^ ?(puertas?|cajon)/.test(t.slice(triple.index! + triple[0].length))) {
     const [, a, ua, b, ub, c, uc] = triple;
-    poner("ancho", aMilimetros(Number(a), ua ?? ub ?? uc), `Ancho ${Math.round(aMilimetros(Number(a), ua ?? ub ?? uc))} mm`);
-    poner("alto", aMilimetros(Number(b), ub ?? ua ?? uc), `Alto ${Math.round(aMilimetros(Number(b), ub ?? ua ?? uc))} mm`);
-    if (c) poner("fondo", aMilimetros(Number(c), uc ?? ua ?? ub), `Fondo ${Math.round(aMilimetros(Number(c), uc ?? ua ?? ub))} mm`);
+    poner("ancho", aMilimetros(Number(a), ua), `Ancho ${Math.round(aMilimetros(Number(a), ua))} mm`);
+    poner("alto", aMilimetros(Number(b), ub), `Alto ${Math.round(aMilimetros(Number(b), ub))} mm`);
+    if (c) poner("fondo", aMilimetros(Number(c), uc), `Fondo ${Math.round(aMilimetros(Number(c), uc))} mm`);
   }
 
   for (const d of DIMENSIONES) {
@@ -166,6 +167,12 @@ export function interpretar(texto: string, muebleActual: string | null): Interpr
       const v = aMilimetros(Number(m[1]), m[2]);
       poner(d.clave, v, `${d.clave[0].toUpperCase()}${d.clave.slice(1)} ${Math.round(v)} mm`);
     }
+  }
+
+  // "closet de 1.8 m con…": una medida suelta después del mueble es el ancho
+  if (!("ancho" in valores)) {
+    const suelta = t.match(new RegExp(`\\b(?:de|mide) (\\d+(?:\\.\\d+)?) ?${UNIDAD}(?! ?(?:x|por|de (?:alto|altura|fondo|profundidad)|puertas?|cajon|entrepanos?|cuerpos?|columnas?))(?=\\s|$|,)`));
+    if (suelta) poner("ancho", aMilimetros(Number(suelta[1]), suelta[2]), `Ancho ${Math.round(aMilimetros(Number(suelta[1]), suelta[2]))} mm`);
   }
 
   // zócalo y patas
@@ -186,6 +193,13 @@ export function interpretar(texto: string, muebleActual: string | null): Interpr
       else poner(c.clave, c.clave === "columnas" && /divisiones?/.test(m[0]) ? n + 1 : n, `${n} ${m[0].split(" ").slice(1).join(" ")}`);
     }
   }
+
+  if (tiene("laterales")) {
+    if (/\bcajon/.test(t)) poner("laterales", "cajones", "Cajones a los lados");
+    else if (/\bpuertas?\b/.test(t)) poner("laterales", "puertas", "Puertas a los lados");
+    else if (/\b(abiertos?|sin puertas)\b/.test(t)) poner("laterales", "abierto", "Laterales abiertos");
+  }
+  if (tiene("patas") && /\b(flotante|colgado|suspendido)\b/.test(t)) poner("patas", 0, "Flotante");
 
   // tipo de frente (mueble bajo de cocina)
   if (tiene("frente")) {

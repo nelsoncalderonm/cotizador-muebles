@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
 import { ACABADOS, ACABADOS_DEFECTO, JALADERAS, acabado, esColorLibre, muestraCss, type AcabadosItem } from "@/lib/acabados";
 import { useEstado } from "@/lib/estado";
+import { ESCENARIOS, type Escenario } from "@/lib/escenarios";
 import { modelo3d } from "@/lib/motor/modelo3d";
 import type { ItemProyecto } from "@/lib/motor/proyecto";
 import type { ResultadoMueble } from "@/lib/motor/tipos";
@@ -68,6 +69,21 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
   const [modo, setModo] = useState<"3d" | "plano">("3d");
   const [abierto, setAbierto] = useState(false);
   const [colores, setColores] = useState(false);
+  const [escenario, setEscenario] = useState<Escenario>(() => {
+    try {
+      return (localStorage.getItem("inner-muebles:escenario") as Escenario) || "sala";
+    } catch {
+      return "sala";
+    }
+  });
+  const cambiarEscenario = (e: Escenario) => {
+    setEscenario(e);
+    try {
+      localStorage.setItem("inner-muebles:escenario", e);
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
   const capturar = useRef<(() => Blob | null) | null>(null);
   const acabados = item.acabados ?? ACABADOS_DEFECTO;
   const fondo = Number(item.valores.fondo ?? 500);
@@ -98,10 +114,19 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
   return (
     <div className="visor">
       {modo === "3d" ? (
-        <Vista3D modelo={modelo} acabados={acabados} abierto={abierto} onListo={(f) => (capturar.current = f)} />
+        <Vista3D modelo={modelo} acabados={acabados} abierto={abierto} escenario={escenario} onListo={(f) => (capturar.current = f)} />
       ) : (
         <div className="visor-plano">
           <VistaMueble vista={res.vista} />
+        </div>
+      )}
+      {modo === "3d" && (
+        <div className="visor-ambientes" role="group" aria-label="Ambiente">
+          {ESCENARIOS.map((e) => (
+            <button key={e.id} className={escenario === e.id ? "activo" : ""} onClick={() => cambiarEscenario(e.id)}>
+              {e.nombre}
+            </button>
+          ))}
         </div>
       )}
       <div className="visor-barra">
