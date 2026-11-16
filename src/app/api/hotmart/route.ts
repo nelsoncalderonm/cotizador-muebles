@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   }
   const token = req.headers.get("x-hotmart-hottok") || (typeof carga.hottok === "string" ? carga.hottok : "");
   if (!token) return NextResponse.json({ error: "Falta el token" }, { status: 401 });
-  const r = await fetch(`${url}/rest/v1/rpc/hotmart_evento`, {
+  const r = await fetch(`${url}/rest/v1/rpc/im_hotmart_evento`, {
     method: "POST",
     headers: { apikey: clave, Authorization: `Bearer ${clave}`, "Content-Type": "application/json" },
     body: JSON.stringify({ token, carga }),

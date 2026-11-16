@@ -35,7 +35,7 @@ export function ProveedorCuenta({ children }: { children: ReactNode }) {
   const [cuenta, setCuenta] = useState<MiCuenta | null>(null);
 
   const recargar = useCallback(async () => {
-    const { data } = await supabase().rpc("mi_cuenta");
+    const { data } = await supabase().rpc("im_mi_cuenta");
     setCuenta((data as MiCuenta) ?? null);
   }, []);
 
@@ -71,7 +71,7 @@ export function ProveedorCuenta({ children }: { children: ReactNode }) {
     eventos.forEach((e) => window.addEventListener(e, marcar, { passive: true }));
     const reloj = setInterval(() => {
       if (document.visibilityState !== "visible" || Date.now() - ultimaActividad.current > 150_000) return;
-      supabase().rpc("registrar_uso", { segundos: 60 }).then(
+      supabase().rpc("im_registrar_uso", { segundos: 60 }).then(
         () => {},
         () => {},
       );

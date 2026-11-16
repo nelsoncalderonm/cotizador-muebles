@@ -53,7 +53,7 @@ export function Acceso() {
         const { error } = await sb.auth.signInWithPassword(datos);
         if (error) setError(traducir(error.message));
       } else {
-        const { data, error } = await sb.auth.signUp(datos);
+        const { data, error } = await sb.auth.signUp({ ...datos, options: { data: { app: "inner_muebles" } } });
         if (error) setError(traducir(error.message));
         else if (!data.session) setAviso("Te enviamos un correo para confirmar tu cuenta. Ábrelo y vuelve a entrar.");
       }

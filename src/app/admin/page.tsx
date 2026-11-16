@@ -86,7 +86,7 @@ function Panel() {
 
   const cargar = useCallback(async () => {
     setError("");
-    const { data, error } = await supabase().rpc("panel_clientes");
+    const { data, error } = await supabase().rpc("im_panel_clientes");
     if (error) setError("No se pudieron cargar los clientes.");
     else setClientes((data as Cliente[]) ?? []);
   }, []);
@@ -137,7 +137,7 @@ function Panel() {
   async function activar(e: React.FormEvent) {
     e.preventDefault();
     setGuardando(true);
-    const { error } = await supabase().rpc("panel_activar", { p_correo: manual.correo, p_medio: manual.medio, p_dias: manual.dias, p_nombre: manual.nombre || null });
+    const { error } = await supabase().rpc("im_panel_activar", { p_correo: manual.correo, p_medio: manual.medio, p_dias: manual.dias, p_nombre: manual.nombre || null });
     setGuardando(false);
     if (error) return setError(error.message.includes("Correo") ? "Revisa el correo del cliente." : "No se pudo activar.");
     setManual({ ...manual, correo: "", nombre: "" });
@@ -145,7 +145,7 @@ function Panel() {
   }
   async function cancelar(c: Cliente) {
     if (!confirm(`¿Quitar el acceso a ${c.correo}?`)) return;
-    const { error } = await supabase().rpc("panel_cancelar", { p_correo: c.correo });
+    const { error } = await supabase().rpc("im_panel_cancelar", { p_correo: c.correo });
     if (error) setError("No se pudo cancelar.");
     await cargar();
   }
