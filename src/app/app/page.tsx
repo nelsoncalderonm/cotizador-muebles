@@ -8,6 +8,9 @@ import { PanelPrecios } from "@/components/PanelPrecios";
 import { Onboarding } from "@/components/Onboarding";
 import { Puerta } from "@/components/Acceso";
 import { ProveedorCuenta } from "@/lib/cuenta";
+import { ProveedorCotizaciones, useCotizaciones } from "@/lib/cotizaciones";
+import { SincronizarNube } from "@/lib/nube";
+import { AvisoVistas, PanelHistorial } from "@/components/PanelHistorial";
 
 const PESTANAS = [
   { id: "disenar", etiqueta: "Diseñar", icono: "M4 20h16M6 16V8l6-4 6 4v8M10 16v-4h4v4" },
@@ -17,11 +20,12 @@ const PESTANAS = [
   { id: "cotizar", etiqueta: "Cotizar", icono: "M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4" },
 ] as const;
 
-type Id = (typeof PESTANAS)[number]["id"] | "precios";
-const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios"];
+type Id = (typeof PESTANAS)[number]["id"] | "precios" | "historial";
+const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios", "historial"];
 
 function App() {
   const { listo, resultado, precios, items, nuevoProyecto, configurado } = useEstado();
+  const { activas, nuevasVistas } = useCotizaciones();
   const [tab, setTabEstado] = useState<Id>("disenar");
   // La pestaña vive en la URL (#cortes, #cotizar…): el botón Atrás del celular vuelve a la pestaña anterior
   useEffect(() => {
@@ -42,6 +46,8 @@ function App() {
   return (
     <div className="app">
       {!configurado && <Onboarding />}
+      <SincronizarNube />
+      {tab !== "historial" && <AvisoVistas alVer={() => setTab("historial")} />}
       <header className="barra">
         <div className="marca">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -59,6 +65,16 @@ function App() {
               }}
             >
               Nuevo
+            </button>
+          )}
+          {activas && (
+            <button className={`btn-icono${tab === "historial" ? " activo" : ""}`} aria-pressed={tab === "historial"} onClick={() => setTab(tab === "historial" ? "disenar" : "historial")}>
+              Enviadas
+              {nuevasVistas.length > 0 && tab !== "historial" && (
+                <span className="contador" aria-label={`${nuevasVistas.length} vistas nuevas`}>
+                  {nuevasVistas.length}
+                </span>
+              )}
             </button>
           )}
           <button className={`btn-icono${tab === "precios" ? " activo" : ""}`} aria-pressed={tab === "precios"} onClick={() => setTab(tab === "precios" ? "disenar" : "precios")}>
@@ -85,9 +101,10 @@ function App() {
         {tab === "armado" && <PanelArmado />}
         {tab === "cotizar" && <PanelCotizar />}
         {tab === "precios" && <PanelPrecios />}
+        {tab === "historial" && <PanelHistorial irAlCotizador={() => setTab("disenar")} />}
       </main>
 
-      {items.length > 0 && tab !== "cotizar" && (
+      {items.length > 0 && tab !== "cotizar" && tab !== "historial" && (
         <button className="total-flotante" onClick={() => setTab("cotizar")}>
           <span>
             {resultado.materiales.reduce((s, m) => s + m.laminas.length, 0)} láminas · {items.reduce((s, i) => s + i.cantidad, 0)} mueble(s)
@@ -104,7 +121,9 @@ export default function Pagina() {
     <ProveedorCuenta>
       <Puerta>
         <ProveedorEstado>
-          <App />
+          <ProveedorCotizaciones>
+            <App />
+          </ProveedorCotizaciones>
         </ProveedorEstado>
       </Puerta>
     </ProveedorCuenta>

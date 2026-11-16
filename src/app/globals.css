@@ -1855,6 +1855,10 @@ p.avisos {
     padding: 8px 10px;
     font-size: 0.8rem;
   }
+  .barra:has(.barra-acciones > :nth-child(3)) .marca b,
+  .barra:has(.barra-acciones > :nth-child(3)) .marca i {
+    display: none;
+  }
 }
 
 /* ---------- cotización: imágenes 3D y proveedor ---------- */
@@ -2444,4 +2448,238 @@ p.avisos {
 }
 .cot-costos[open] summary {
   margin-bottom: 10px;
+}
+
+/* Mis cotizaciones */
+.hist-titulo {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+}
+.hist-resumen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.hist-resumen > div {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  background: var(--marino);
+  color: #fff;
+}
+.hist-resumen span {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+.hist-resumen strong {
+  font-size: 1.15rem;
+  color: var(--menta);
+  overflow-wrap: anywhere;
+}
+.hist-resumen small {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+.hist-filtros {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.hist-filtros .chip {
+  flex: 1 1 0;
+  justify-content: center;
+  padding: 6px 4px;
+  font-size: 0.85rem;
+}
+.hist-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.hist-item {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 14px;
+}
+.hist-item.hist-enviada {
+  border-left-color: #e3a008;
+}
+.hist-item.hist-aprobada {
+  border-left-color: var(--ok);
+}
+.hist-item.hist-perdida {
+  border-left-color: var(--suave);
+  opacity: 0.85;
+}
+.hist-item.hist-nueva {
+  box-shadow: 0 0 0 3px var(--menta);
+}
+.hist-cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.hist-cabeza div {
+  display: grid;
+  min-width: 0;
+}
+.hist-cabeza b {
+  font-size: 1.02rem;
+}
+.hist-cabeza small {
+  color: var(--suave);
+  font-size: 0.82rem;
+}
+.hist-cabeza strong {
+  white-space: nowrap;
+  font-size: 1.05rem;
+}
+.hist-vistas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 10px 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.hist-enviada {
+  margin-left: auto;
+  color: var(--suave);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+.hist-estado {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.hist-estado .chip {
+  flex: 1 1 0;
+  justify-content: center;
+  padding: 6px 4px;
+  font-size: 0.84rem;
+}
+.hist-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.hist-acciones .btn-sec {
+  flex: 1 1 auto;
+  min-height: 44px;
+}
+.hist-seguir {
+  flex: 1 1 100%;
+  min-height: 48px;
+}
+.hist-borrar {
+  border: 0;
+  background: none;
+  color: var(--suave);
+  text-decoration: underline;
+  padding: 8px;
+  font-size: 0.85rem;
+}
+.hist-nota {
+  color: var(--suave);
+  font-size: 0.82rem;
+  margin: 14px 2px;
+}
+.panel-historial .vacio .btn {
+  margin-top: 12px;
+}
+
+/* Botón del encabezado con contador de vistas nuevas */
+.btn-icono {
+  position: relative;
+}
+.btn-icono .contador {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff5a3c;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* Aviso: el cliente abrió la cotización */
+.aviso-vista {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: calc(10px + env(safe-area-inset-top));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--radio);
+  background: #fff;
+  color: #0b1f3a;
+  border: 2px solid var(--menta);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: aviso-entra 0.35s ease-out;
+}
+.aviso-vista > span {
+  font-size: 1.5rem;
+}
+.aviso-vista p {
+  flex: 1;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.aviso-ver {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-height: 44px;
+  background: var(--marino);
+  color: #fff;
+  font-weight: 700;
+}
+.aviso-cerrar {
+  border: 0;
+  background: none;
+  color: #5a6b80;
+  font-size: 1.4rem;
+  min-width: 36px;
+  min-height: 44px;
+}
+@keyframes aviso-entra {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+@media (max-width: 420px) {
+  .barra-acciones {
+    gap: 4px;
+  }
+  .barra-acciones .btn-icono {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+  .barra:has(.barra-acciones > :nth-child(3)) .marca b,
+  .barra:has(.barra-acciones > :nth-child(3)) .marca i {
+    display: none;
+  }
 }

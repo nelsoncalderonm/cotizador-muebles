@@ -7,6 +7,7 @@ import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
 import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
+import { useCotizaciones } from "@/lib/cotizaciones";
 import { useFotos } from "@/lib/fotos";
 import { esPuerta } from "@/lib/motor/constructor";
 import { cuentasActivas, supabase } from "@/lib/supabase";
@@ -469,11 +470,12 @@ async function subirPdf(blob: Blob) {
   const id = crypto.randomUUID();
   const { error } = await supabase().storage.from("inner-muebles-cotizaciones").upload(`c/${id}.pdf`, blob, { contentType: "application/pdf", upsert: false });
   if (error) throw error;
-  return `${location.origin}/c/${id}`;
+  return { id, link: `${location.origin}/c/${id}` };
 }
 
 export function PanelCotizar() {
-  const { resultado, precios, cliente, setCliente, taller } = useEstado();
+  const { resultado, precios, cliente, setCliente, taller, items } = useEstado();
+  const { registrar } = useCotizaciones();
   const pdf = useAccionesPdf();
   const [detallado, setDetallado] = useState(false);
   const [conTrabajos, setConTrabajos] = useState(true);
@@ -537,7 +539,19 @@ export function PanelCotizar() {
     setEnvio("armando");
     try {
       const { doc } = await pdf.docCotizacion(detallado, conTrabajos);
-      const link = await subirPdf(doc.output("blob"));
+      const { id, link } = await subirPdf(doc.output("blob"));
+      // queda en "Mis cotizaciones"; si falla, igual se envía
+      await registrar({
+        id,
+        numero,
+        cliente: cliente.cliente,
+        telefono: tel,
+        proyecto: cliente.proyecto,
+        total: resultado.total,
+        anticipo: pct > 0 && pct < 100 ? anticipo : 0,
+        moneda: { simbolo: precios.simbolo, decimales: precios.decimales },
+        datos: { items, cliente },
+      }).catch(() => {});
       const texto = `${mensaje}\n\n📄 Cotización en PDF: ${link}`;
       const destino = `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
       if (ventana) ventana.location.href = destino;

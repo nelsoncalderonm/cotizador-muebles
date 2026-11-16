@@ -30,7 +30,7 @@ export interface DatosTaller {
   proveedor?: string;
 }
 
-interface Guardado {
+export interface Guardado {
   items: ItemProyecto[];
   config: Configuracion;
   precios: Precios;
@@ -55,7 +55,15 @@ function cargar(): Guardado {
   try {
     const raw = localStorage.getItem(CLAVE);
     if (!raw) return INICIAL;
-    const g = JSON.parse(raw) as Partial<Guardado>;
+    return normalizar(JSON.parse(raw) as Partial<Guardado>);
+  } catch {
+    return INICIAL;
+  }
+}
+
+/** Completa con los valores por defecto lo que falte (datos viejos o de otra versión). */
+export function normalizar(g: Partial<Guardado>): Guardado {
+  try {
     return {
       items: g.items ?? [],
       config: { ...CONFIG_DEFECTO, ...g.config, materiales: { ...CONFIG_DEFECTO.materiales, ...g.config?.materiales } },
@@ -89,6 +97,8 @@ interface Ctx extends Guardado {
   /** Guarda de una vez lo elegido en la configuración inicial. Sin cambios = solo la marca como hecha. */
   terminarConfiguracion: (cambios?: { config: Configuracion; precios: Precios; taller: DatosTaller }) => void;
   repetirConfiguracion: () => void;
+  /** Reemplaza todo con lo guardado en la nube o con una cotización vieja. */
+  reemplazar: (g: Partial<Guardado>) => void;
 }
 
 const Contexto = createContext<Ctx | null>(null);
@@ -169,6 +179,11 @@ export function ProveedorEstado({ children }: { children: ReactNode }) {
     setTaller: (taller) => setG((s) => ({ ...s, taller })),
     terminarConfiguracion: (cambios) => setG((s) => ({ ...s, ...cambios, configurado: true })),
     repetirConfiguracion: () => setG((s) => ({ ...s, configurado: false })),
+    reemplazar: (nuevo) => {
+      const n = normalizar({ ...g, ...nuevo });
+      setG(n);
+      setSeleccion(n.items[0]?.uid ?? null);
+    },
     nuevoProyecto: () => {
       setG((s) => ({ ...s, items: [], cliente: INICIAL.cliente }));
       setSeleccion(null);

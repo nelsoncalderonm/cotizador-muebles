@@ -18,7 +18,8 @@ export interface Fotos {
 const CLAVE = "inner-muebles:fotos";
 export const MAX_TRABAJOS = 6;
 const VACIO: Fotos = { logo: null, trabajos: [] };
-const EVENTO = "inner-muebles:fotos-cambio";
+export const EVENTO_FOTOS = "inner-muebles:fotos-cambio";
+const EVENTO = EVENTO_FOTOS;
 
 export function leerFotos(): Fotos {
   try {
@@ -29,14 +30,19 @@ export function leerFotos(): Fotos {
   }
 }
 
-function guardar(f: Fotos): boolean {
+function guardar(f: Fotos, origen: "usuario" | "nube" = "usuario"): boolean {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(f));
-    window.dispatchEvent(new Event(EVENTO));
+    window.dispatchEvent(new CustomEvent(EVENTO, { detail: origen }));
     return true;
   } catch {
     return false; // sin espacio
   }
+}
+
+/** Pone en este dispositivo el logo y las fotos guardadas en la cuenta. */
+export function aplicarFotosNube(f: Partial<Fotos> | null) {
+  return guardar({ logo: f?.logo ?? null, trabajos: Array.isArray(f?.trabajos) ? f.trabajos : [] }, "nube");
 }
 
 /** Reduce una foto del celular (varios MB) a una imagen liviana. */
