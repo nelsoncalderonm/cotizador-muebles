@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { DemoLamina, DemoPlano, DemoTelefono } from "@/components/landing/DemoAnimada";
 import "./landing.css";
@@ -20,6 +21,30 @@ const BENEFICIOS = [
   { t: "PDF para el proveedor", d: "La orden de corte lista para mandar al depósito que te corta y cantea." },
   { t: "Desde el celular", d: "Hecho para usarse en la obra, con una mano. También en el computador." },
 ];
+
+/** Pantallas reales de la app (capturas de /app en un celular). */
+const PANTALLAS = [
+  { src: "/app/catalogo.webp", t: "Eliges el mueble o lo dictas", d: "Tocas el micrófono y dices “clóset de 1,50 por 2,10”." },
+  { src: "/app/disenar-3d.webp", t: "Lo ves en 3D al instante", d: "Cambias una medida o un color y el mueble y el precio cambian solos." },
+  { src: "/app/cortes.webp", t: "La lista de cortes sale sola", d: "Cada pieza con su medida de corte, ya descontado el canto." },
+  { src: "/app/laminas.webp", t: "Sabes cuántas láminas comprar", d: "Las piezas acomodadas en la lámina, listas para el depósito." },
+  { src: "/app/armado.webp", t: "Tu ayudante sabe cómo armarlo", d: "Plano con medidas y el armado paso a paso." },
+];
+
+const CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_2zkI0jM7sJ3yYe3PzFEgTYfZKSN";
+/** Imágenes de referencia (generadas con IA) de gente usando la app. No son clientes reales ni testimonios. */
+const PERSONAS = {
+  dictando: { src: `${CDN}/hf_20261116_145852_0becd583-234b-4162-a4dc-103f83181b85.png`, alt: "Carpintera dictando las medidas de un mueble a su celular en el taller", t: "Dicta las medidas en la obra", d: "Sin libreta ni calculadora: hablas y la app llena todo." },
+  pareja: { src: `${CDN}/hf_20261116_145851_d180d6be-7702-4f8a-b3b7-36ac4113b514.png`, alt: "Pareja mirando en un celular el clóset en 3D que les van a fabricar", t: "", d: "" },
+  aprendiz: { src: `${CDN}/hf_20261116_145850_ca44da07-ee76-42e0-adae-dbbf54540b54.png`, alt: "Ayudante de carpintería siguiendo el plano de cortes en el celular junto a la sierra", t: "Tu ayudante corta sin preguntarte", d: "Le pasas la lista de cortes y el plano, y trabaja solo." },
+  portatil: { src: `${CDN}/hf_20261116_145848_f5df1b79-c470-4855-802d-20237005503f.png`, alt: "Carpintero revisando una cotización en el portátil del taller", t: "En el celular o en el computador", d: "Tus muebles y precios, listos donde estés." },
+  midiendo: { src: `${CDN}/hf_20261116_145853_e1d2a603-fe20-47a6-8a7f-dda27f3c0d0a.png`, alt: "Carpintero midiendo una pared mientras la clienta mira el librero en 3D en el celular", t: "Le das el precio antes de irte", d: "Mides, cotizas y el cliente ya ve su mueble en 3D." },
+  manos: { src: `${CDN}/hf_20261116_145851_bde8af36-3931-4390-82de-f5aa89066506.png`, alt: "Manos girando con el dedo un mueble de baño en 3D en la pantalla del celular", t: "", d: "" },
+};
+
+function FotoPersona({ f, sizes, prioridad }: { f: { src: string; alt: string }; sizes: string; prioridad?: boolean }) {
+  return <Image src={f.src} alt={f.alt} width={1024} height={1280} sizes={sizes} priority={prioridad} />;
+}
 
 const CATALOGO = ["Bajos de cocina", "Aéreos de cocina", "Closets y roperos", "Libreros y repisas", "Escritorios", "Mesas de noche", "Cajoneras"];
 
@@ -86,7 +111,7 @@ export default function Landing() {
               Cotiza un mueble en <span>5 minutos</span> desde tu celular
             </h1>
             <p className="ld-sub">
-              Mides, dictas las medidas y la app te da <b>la lista de cortes, las láminas que necesitas, los herrajes y el precio</b>. Lista para mandar por WhatsApp.
+              Mides, le dictas las medidas al celular y, antes de salir de la casa del cliente, <b>él ya ve su mueble en 3D con el precio</b>. Tú te quedas con la lista de cortes, las láminas y los herrajes.
             </p>
             <Cta grande />
             <p className="ld-mini">Pago seguro con Hotmart · Garantía de 7 días · Cancela cuando quieras</p>
@@ -115,6 +140,32 @@ export default function Landing() {
               <li>Cada tornillo y bisagra en el precio</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="ld-sec ld-3d" aria-labelledby="ld-3d-t">
+        <div className="ld-wrap ld-split">
+          <div>
+            <p className="ld-eyebrow">Lo que convence al cliente</p>
+            <h2 id="ld-3d-t">Tu cliente ve su mueble en 3D antes de que cortes una sola pieza</h2>
+            <p className="ld-sub">
+              La gente no entiende un plano, pero entiende esto. Le muestras el clóset con sus medidas y sus colores, le abres las puertas y le das el precio <b>ahí mismo</b>. Así se cierran los trabajos.
+            </p>
+            <div className="ld-3d-fotos">
+              <figure>
+                <FotoPersona f={PERSONAS.pareja} sizes="(min-width: 900px) 240px, 45vw" />
+              </figure>
+              <figure>
+                <FotoPersona f={PERSONAS.manos} sizes="(min-width: 900px) 240px, 45vw" />
+              </figure>
+            </div>
+          </div>
+          <figure className="ld-3d-video">
+            <video autoPlay muted loop playsInline preload="metadata" poster="/app/closet-3d.jpg" aria-label="Clóset en 3D dentro de la app: gira y abre sus puertas">
+              <source src="/app/closet-3d.mp4" type="video/mp4" />
+            </video>
+            <figcaption>Grabado directo de la app, sin editar</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -149,6 +200,47 @@ export default function Landing() {
                 <h3>{p.t}</h3>
                 <p>{p.d}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="ld-sec ld-sec-claro" aria-labelledby="ld-dentro-t">
+        <div className="ld-wrap">
+          <p className="ld-eyebrow">Así se ve por dentro</p>
+          <h2 id="ld-dentro-t">Esto es lo que vas a tener en tu celular</h2>
+          <p className="ld-sub">Pantallas reales de la app con un clóset de 1,50 × 2,10. Desliza para verlas.</p>
+        </div>
+        <div className="ld-pantallas" role="list">
+          {PANTALLAS.map((p, i) => (
+            <figure key={p.src} role="listitem">
+              <div className="ld-pantalla-marco">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.src} alt={`Pantalla de la app: ${p.t}`} width={600} height={1298} loading="lazy" decoding="async" />
+              </div>
+              <figcaption>
+                <span>{i + 1}</span>
+                <b>{p.t}</b>
+                <small>{p.d}</small>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <section className="ld-sec" aria-labelledby="ld-gente-t">
+        <div className="ld-wrap">
+          <p className="ld-eyebrow">Hecha para gente de taller</p>
+          <h2 id="ld-gente-t">No tienes que saber de computadores. Si mandas audios por WhatsApp, puedes usarla.</h2>
+          <div className="ld-gente">
+            {[PERSONAS.dictando, PERSONAS.midiendo, PERSONAS.aprendiz, PERSONAS.portatil].map((f) => (
+              <figure key={f.src}>
+                <FotoPersona f={f} sizes="(min-width: 900px) 270px, 80vw" />
+                <figcaption>
+                  <b>{f.t}</b>
+                  <small>{f.d}</small>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
