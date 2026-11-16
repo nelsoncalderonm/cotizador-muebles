@@ -1,5 +1,6 @@
 "use client";
 
+import { InputNumero } from "./InputNumero";
 // Configuración inicial paso a paso: taller, país y moneda, tablero habitual, corte y ganancia.
 // Todo queda en un borrador y se guarda al terminar; "Saltar" deja los valores de referencia.
 
@@ -17,7 +18,7 @@ function Dinero({ etiqueta, valor, onCambio, simbolo, ayuda }: { etiqueta: strin
     <label className="campo">
       <span>{etiqueta}</span>
       <div className="input-mm">
-        <input type="number" inputMode="decimal" value={valor} onFocus={(e) => e.target.select()} onChange={(e) => onCambio(parseFloat(e.target.value) || 0)} />
+        <InputNumero valor={valor} onCambio={onCambio} />
         <em>{simbolo}</em>
       </div>
       {ayuda && <small>{ayuda}</small>}

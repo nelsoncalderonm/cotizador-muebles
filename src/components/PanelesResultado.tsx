@@ -1,5 +1,6 @@
 "use client";
 
+import { InputNumero } from "./InputNumero";
 import { useEffect, useState } from "react";
 import { formatoDinero, mm, useEstado } from "@/lib/estado";
 import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
@@ -271,7 +272,7 @@ function PrecioProveedor({ nombre, cantidad, valor, simbolo, onCambio }: { nombr
         <small>{cantidad}</small>
       </span>
       <div className="input-mm">
-        <input type="number" inputMode="decimal" value={valor || ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => onCambio(parseFloat(e.target.value) || 0)} />
+        <InputNumero valor={valor} onCambio={onCambio} vacioSiCero placeholder="0" />
         <em>{simbolo}</em>
       </div>
     </label>
