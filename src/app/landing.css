@@ -1131,3 +1131,64 @@
 .gr-garantia {
   margin-top: 28px;
 }
+
+.gr-grupo {
+  margin-top: 30px;
+  padding: 22px 20px;
+  border-radius: 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--mint);
+  text-align: center;
+}
+
+.gr-grupo h2 {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+}
+
+.gr-grupo ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  color: #dbe4ef;
+  font-size: 0.95rem;
+}
+
+.gr-grupo li {
+  padding-left: 26px;
+  position: relative;
+}
+
+.gr-grupo li::before {
+  content: "✓";
+  position: absolute;
+  left: 4px;
+  color: var(--mint);
+  font-weight: 800;
+}
+
+.gr-btn-grupo {
+  display: flex;
+  justify-content: center;
+  padding: 16px 22px;
+  border-radius: 12px;
+  background: #25d366;
+  color: #062b14;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.gr-nota {
+  margin-top: 10px !important;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+@media (min-width: 700px) {
+  .gr-btn-grupo {
+    display: inline-flex;
+  }
+}

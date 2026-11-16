@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "../landing.css";
 
+import { GRUPO_WHATSAPP } from "@/lib/soporte";
 import { BotonCrearCuenta, BotonWhatsApp, CorreoCompra } from "./Acciones";
 
 export const metadata: Metadata = {
@@ -124,6 +125,20 @@ export default function Gracias() {
               </li>
             ))}
           </ol>
+        </section>
+
+        <section className="gr-grupo">
+          <p className="ld-eyebrow">Paso extra, muy recomendado</p>
+          <h2>Únete al grupo de carpinteros de INNER</h2>
+          <ul>
+            <li>Te avisamos primero de los muebles nuevos que agregamos cada mes.</li>
+            <li>Trucos cortos para cotizar más rápido y cobrar mejor.</li>
+            <li>Preguntas y respuestas entre colegas de toda Latinoamérica.</li>
+          </ul>
+          <a className="gr-btn-grupo" href={GRUPO_WHATSAPP} target="_blank" rel="noreferrer">
+            Unirme al grupo de WhatsApp
+          </a>
+          <p className="gr-nota">Sin cadenas ni spam. Puedes salirte cuando quieras.</p>
         </section>
 
         <section className="gr-wa">
