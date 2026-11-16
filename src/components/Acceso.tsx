@@ -5,6 +5,7 @@ import { useState } from "react";
 import { EXIGIR_PAGO, useCuenta } from "@/lib/cuenta";
 import { enlaceSoporte } from "@/lib/soporte";
 import { supabase } from "@/lib/supabase";
+import { evento } from "@/lib/pixel";
 
 const CHECKOUT = process.env.NEXT_PUBLIC_CHECKOUT_URL || "https://pay.hotmart.com/M108507757C";
 
@@ -55,7 +56,8 @@ export function Acceso() {
       } else {
         const { data, error } = await sb.auth.signUp({ ...datos, options: { data: { app: "inner_muebles" } } });
         if (error) setError(traducir(error.message));
-        else if (!data.session) setAviso("Te enviamos un correo para confirmar tu cuenta. Ábrelo y vuelve a entrar.");
+        else evento("CompleteRegistration", { content_name: "INNER Muebles" });
+        if (!error && !data.session) setAviso("Te enviamos un correo para confirmar tu cuenta. Ábrelo y vuelve a entrar.");
       }
     } catch {
       setError(traducir(""));

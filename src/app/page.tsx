@@ -3,20 +3,8 @@ import { DemoLamina, DemoPlano, DemoTelefono } from "@/components/landing/DemoAn
 import "./landing.css";
 
 import { enlaceSoporte } from "@/lib/soporte";
-// Checkout de Hotmart (plan mensual). Se puede cambiar con NEXT_PUBLIC_CHECKOUT_URL sin tocar código.
-const CHECKOUT = process.env.NEXT_PUBLIC_CHECKOUT_URL || "https://pay.hotmart.com/M108507757C";
-const PRECIO = process.env.NEXT_PUBLIC_PRECIO || "US$15";
-
-function Cta({ texto = `Quiero INNER Muebles por ${PRECIO}/mes`, grande = false }: { texto?: string; grande?: boolean }) {
-  return (
-    <a className={`ld-cta${grande ? " ld-cta-grande" : ""}`} href={CHECKOUT}>
-      {texto}
-      <svg viewBox="0 0 24 24" aria-hidden>
-        <path d="M5 12h14M13 6l6 6-6 6" />
-      </svg>
-    </a>
-  );
-}
+import { Cta, VistaLanding } from "@/components/landing/Cta";
+import { PRECIO, PRECIO_PRIMER_MES } from "@/lib/oferta";
 
 const PASOS = [
   { n: "1", t: "Mide", d: "Toma ancho, alto y fondo en la obra. Nada más." },
@@ -75,6 +63,7 @@ function Garantia() {
 export default function Landing() {
   return (
     <div className="ld">
+      <VistaLanding />
       <header className="ld-top">
         <div className="ld-wrap ld-top-in">
           <div className="ld-logo">
@@ -262,10 +251,20 @@ export default function Landing() {
         <div className="ld-wrap">
           <div className="ld-precio">
             <p className="ld-eyebrow">Un solo plan</p>
-            <h2>
-              {PRECIO}
-              <small>/mes</small>
-            </h2>
+            {PRECIO_PRIMER_MES ? (
+              <>
+                <h2>
+                  {PRECIO_PRIMER_MES}
+                  <small> el primer mes</small>
+                </h2>
+                <p className="ld-luego">Después {PRECIO}/mes. Cancela cuando quieras.</p>
+              </>
+            ) : (
+              <h2>
+                {PRECIO}
+                <small>/mes</small>
+              </h2>
+            )}
             <p className="ld-sub">Una sola lámina de melamina cuesta más que un mes de INNER Muebles. Si te ahorra una lámina o un herraje olvidado, ya se pagó.</p>
             <ul>
               <li>Muebles y cotizaciones ilimitadas</li>
@@ -311,7 +310,7 @@ export default function Landing() {
       </footer>
 
       <div className="ld-sticky">
-        <Cta texto={`Empezar por ${PRECIO}/mes`} />
+        <Cta texto={PRECIO_PRIMER_MES ? `Primer mes por ${PRECIO_PRIMER_MES}` : `Empezar por ${PRECIO}/mes`} />
       </div>
     </div>
   );

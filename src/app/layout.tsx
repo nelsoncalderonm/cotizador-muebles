@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PixelMeta } from "@/components/PixelMeta";
 
 export const metadata: Metadata = {
   title: "INNER Muebles · Cotiza y corta muebles en minutos",
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PixelMeta />
+      </body>
     </html>
   );
 }

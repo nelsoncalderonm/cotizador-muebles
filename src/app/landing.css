@@ -823,3 +823,9 @@
   margin-top: 24px;
   text-align: center;
 }
+
+.ld-luego {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
