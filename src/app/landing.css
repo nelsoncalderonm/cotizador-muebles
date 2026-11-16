@@ -960,3 +960,174 @@
   margin-top: 4px;
   font-size: inherit;
 }
+
+/* página de gracias (después de pagar en Hotmart) */
+.gr-main {
+  max-width: 720px;
+  padding-bottom: 40px;
+}
+
+.gr-hero {
+  text-align: center;
+  padding: 36px 0 22px;
+}
+
+.gr-hero h1 {
+  font-size: clamp(1.7rem, 6vw, 2.4rem);
+}
+
+.gr-hero .ld-sub {
+  margin-bottom: 0 !important;
+}
+
+.gr-sello {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 217, 163, 0.14);
+  border: 2px solid var(--mint);
+}
+
+.gr-sello svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: var(--mint);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.gr-clave {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #fff6db;
+  color: #3d2e00;
+  border-left: 5px solid #f2b705;
+}
+
+.gr-clave > b {
+  display: block;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.gr-clave p {
+  font-size: 1.02rem;
+}
+
+.gr-correo {
+  margin-top: 8px !important;
+  font-size: 0.92rem !important;
+  word-break: break-all;
+}
+
+.gr-boton {
+  margin: 22px 0 8px;
+  text-align: center;
+}
+
+.gr-pasos {
+  margin-top: 34px;
+}
+
+.gr-pasos h2,
+.gr-faq h2 {
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+}
+
+.gr-pasos ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.gr-pasos li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+}
+
+.gr-pasos h3 {
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.gr-pasos p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.gr-num {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--mint);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.gr-wa {
+  margin: 30px 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.16), rgba(37, 211, 102, 0.05));
+  border: 1px solid rgba(37, 211, 102, 0.45);
+  display: grid;
+  gap: 16px;
+}
+
+.gr-wa h2 {
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+}
+
+.gr-wa p {
+  color: #dbe4ef;
+  font-size: 0.95rem;
+}
+
+.gr-btn-wa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 22px;
+  border-radius: 12px;
+  background: #25d366;
+  color: #062b14;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.gr-btn-wa svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+@media (min-width: 700px) {
+  .gr-wa {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+.gr-garantia {
+  margin-top: 28px;
+}

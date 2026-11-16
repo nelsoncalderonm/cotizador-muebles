@@ -1,7 +1,7 @@
 "use client";
 // Pantalla de entrada: correo y contraseña. Quien compró en Hotmart entra con el mismo correo de la compra.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EXIGIR_PAGO, useCuenta } from "@/lib/cuenta";
 import { enlaceSoporte } from "@/lib/soporte";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +41,14 @@ export function Acceso() {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+
+  // Desde la página de gracias: /app?crear=1&correo=… abre "Crear cuenta" con el correo de la compra ya escrito
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("crear") === "1") setModo("crear");
+    const c = (q.get("correo") || "").trim().toLowerCase();
+    if (c) setCorreo(c);
+  }, []);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
