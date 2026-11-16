@@ -695,3 +695,131 @@
     padding: 80px 0;
   }
 }
+
+/* prueba social y confianza */
+.ld-garantia {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(0, 217, 163, 0.08);
+  border: 1px solid rgba(0, 217, 163, 0.35);
+  text-align: left;
+}
+
+.ld-garantia svg {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: var(--mint);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ld-garantia p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #dbe4ef;
+}
+
+.ld-garantia b {
+  color: #fff;
+}
+
+.ld-lista {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.ld-lista li {
+  position: relative;
+  padding-left: 28px;
+  color: #dbe4ef;
+}
+
+.ld-lista li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--mint);
+  font-weight: 800;
+}
+
+.ld-ejemplo {
+  margin: 0;
+  justify-self: center;
+  width: min(100%, 560px);
+}
+
+.ld-ejemplo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.75), 0 0 0 1px var(--rule);
+  transform: rotate(-1.2deg);
+}
+
+.ld-ejemplo figcaption {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.ld-testimonios {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .ld-testimonios {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ld-testimonios figure {
+  margin: 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--ink-3);
+  border: 1px solid var(--rule);
+  display: grid;
+  gap: 14px;
+}
+
+.ld-testimonios blockquote {
+  margin: 0;
+  color: #e6edf5;
+}
+
+.ld-testimonios figcaption {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ld-testimonios img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ld-testimonios small {
+  display: block;
+  color: var(--muted);
+}
+
+.ld-faq-cta {
+  margin-top: 24px;
+  text-align: center;
+}
