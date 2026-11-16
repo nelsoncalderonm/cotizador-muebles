@@ -422,6 +422,7 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
     const matMetal = () => new THREE.MeshStandardMaterial({ color: met.color, metalness: met.metal, roughness: met.rugosidad });
     const matPata = () => new THREE.MeshStandardMaterial({ color: "#2a2a2c", roughness: 0.5, metalness: 0.2 });
     const matHerraje = () => new THREE.MeshStandardMaterial({ color: "#c4c7cb", roughness: 0.32, metalness: 0.95 });
+    const matLuz = () => new THREE.MeshStandardMaterial({ color: "#fff4d8", emissive: "#ffe2a8", emissiveIntensity: 2.2, roughness: 0.4 });
     const matJunta = () => new THREE.MeshBasicMaterial({ color: "#191512" });
 
     const { ancho: A, alto: H, fondo: F } = modelo;
@@ -436,8 +437,8 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
         geo.rotateZ(Math.PI / 2);
       } else if (b.piezaId === "jaladera") geo = geoJaladera(b.w * MM, b.h * MM, b.d * MM);
       else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM, (n++ * 0.173) % 1, b.movil?.clase === "puerta" ? false : undefined); // en las puertas la veta va vertical
-      const metal = b.piezaId === "pata" ? matPata() : b.piezaId === "jaladera" ? matMetal() : matHerraje();
-      const mat = b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? metal : matCuerpo();
+      const metal = b.piezaId === "pata" || b.piezaId === "rodachina" ? matPata() : b.piezaId === "jaladera" ? matMetal() : matHerraje();
+      const mat = b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? metal : b.tipo === "luz" ? matLuz() : matCuerpo();
       const m = new THREE.Mesh(geo, mat);
       m.castShadow = b.tipo !== "fondo";
       m.receiveShadow = true;
@@ -466,6 +467,7 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
       padres.set(i, g);
     });
 
+    let luces = 0;
     modelo.bloques.forEach((b, i) => {
       const m = malla(b);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2, cz = b.z + b.d / 2;
@@ -478,6 +480,13 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
       } else {
         m.position.set(X(cx), cy * MM, cz * MM);
         s.grupo.add(m);
+      }
+      // cinta LED: una luz cálida suave bajo cada perfil ilumina el nivel de abajo
+      if (b.tipo === "luz" && luces < 8) {
+        luces++;
+        const l = new THREE.PointLight("#ffd29a", 1.6, Math.max(0.6, (b.w * MM) * 0.9), 2);
+        l.position.set(0, -0.06, -0.04);
+        m.add(l);
       }
     });
 

@@ -94,6 +94,9 @@ function aMilimetros(valor: number, unidad: string | undefined) {
 }
 
 const MUEBLES: { id: string; patron: RegExp }[] = [
+  { id: "aparador", patron: /\b(aparador|bife|bufe|buffet|trinchador|credenza)\b/ },
+  { id: "mesa_centro", patron: /\b(mesa de centro|mesa de sala|mesa baja|mesa ratona)\b/ },
+  { id: "repisa_flotante", patron: /\b(repisa flotante|nicho|repisa colgada|repisa de pared)\b/ },
   { id: "mueble_tv", patron: /\b(mueble de (la )?(tv|tele|television)|rack|centro de entretenimiento|mueble tv|televisor|tele|tv)\b/ },
   { id: "despensero", patron: /\b(despensero|despensa|columna|torre de cocina|mueble alto de cocina|alacena alta|mueble de piso a techo)\b/ },
   { id: "zapatero", patron: /\b(zapatero|zapatera|mueble de zapatos|para zapatos|calzado)\b/ },
@@ -217,6 +220,12 @@ export function interpretar(texto: string, muebleActual: string | null): Interpr
     if (tiene("puertas")?.tipo === "si_no") poner("puertas", false, "Sin puertas");
     else poner("puertas", 0, "Sin puertas");
   } else if (tiene("puertas")?.tipo === "si_no" && /\bcon puertas\b/.test(t)) poner("puertas", true, "Con puertas");
+  // luz LED y rodachinas
+  if (tiene("luzLed")) {
+    if (/\bsin (luz|luces|led)\b/.test(t)) poner("luzLed", "no", "Sin luz LED");
+    else if (/\b(led|luz|luces|iluminacion|iluminado)\b/.test(t)) poner("luzLed", /\b(arriba|techo|superior)\b/.test(t) ? "arriba" : "todos", "Con luz LED");
+  }
+  if (tiene("rodachinas") && /\b(rodachinas?|ruedas?|ruedita|ruedas|llanticas?|garruchas?|rodines?)\b/.test(t)) poner("rodachinas", !/\bsin (rodachinas?|ruedas?|llanticas?)\b/.test(t), "Con rodachinas");
   if (/\bsin (tubo|colgador)\b/.test(t)) poner("tubo", false, "Sin tubo");
   else if (/\b(tubo|colgador)\b/.test(t)) poner("tubo", true, "Con tubo colgador");
   if (/\bsin maletero\b/.test(t)) poner("maletero", 0, "Sin maletero");
