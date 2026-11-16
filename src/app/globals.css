@@ -2683,3 +2683,252 @@ p.avisos {
     display: none;
   }
 }
+
+/* Clientes */
+.cli-segmento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: var(--borde);
+}
+.cli-segmento button {
+  border: 0;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 6px;
+  background: transparent;
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.cli-segmento button.activo {
+  background: var(--superficie);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.contador-in {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff5a3c;
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 20px;
+}
+.cli-barra {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cli-barra input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+.cli-barra .btn {
+  flex: none;
+}
+.cli-form .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+.cli-seccion {
+  margin: 18px 2px 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--suave);
+}
+.cli-seccion.hoy {
+  color: #c2410c;
+}
+.cli-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.cli-item {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+.cli-item.cli-hoy,
+.cli-item.cli-tarde {
+  border-color: #f59e0b;
+}
+.cli-cabeza {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.cli-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--marino);
+  color: var(--menta);
+  font-weight: 800;
+}
+.cli-nombre {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.cli-nombre b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cli-nombre small {
+  color: var(--suave);
+  font-size: 0.8rem;
+}
+.cli-cuando {
+  flex: none;
+  max-width: 40%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: center;
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+.cli-cuando.hoy,
+.cli-cuando.tarde {
+  background: #fff1d6;
+  color: #9a3412;
+}
+.cli-detalle {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+.cli-detalle > .btn-enviar {
+  width: 100%;
+}
+.cli-nota-suave {
+  margin: -4px 0 0;
+  color: var(--suave);
+  font-size: 0.82rem;
+}
+.cli-bloque > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--suave);
+}
+.cli-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cli-chips .chip {
+  justify-content: center;
+  padding: 6px 2px;
+  font-size: 0.8rem;
+}
+.cli-fecha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.cli-fecha input {
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+.cli-cots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.cli-cots li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--fondo);
+}
+.cli-cots a {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  color: inherit;
+  text-decoration: none;
+}
+.cli-cots a b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.cli-cots small {
+  color: var(--suave);
+  font-size: 0.75rem;
+}
+.cli-cots strong {
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.cli-estado {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #fff1d6;
+  color: #9a3412;
+}
+.cli-estado.aprobada {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+.cli-estado.perdida {
+  background: var(--borde);
+  color: var(--suave);
+}
+.cli-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cli-acciones .btn-sec {
+  flex: 1 1 auto;
+}

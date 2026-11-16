@@ -15,7 +15,7 @@ const FILTROS: { id: Filtro; etiqueta: string }[] = [
 
 const dinero = (c: Pick<Cotizacion, "moneda">, n: number) => formatoDinero(n, c.moneda ?? { simbolo: "$", decimales: 0 });
 
-function mensajeSeguimiento(c: Cotizacion, taller: string) {
+export function mensajeSeguimiento(c: Cotizacion, taller: string) {
   const nombre = (c.cliente || "").trim().split(/\s+/)[0];
   const de = c.proyecto ? ` de *${c.proyecto}*` : "";
   const link = `${location.origin}/c/${c.id}`;
@@ -43,7 +43,6 @@ export function PanelHistorial({ irAlCotizador }: { irAlCotizador: () => void })
     return (
       <div className="panel">
         <div className="vacio">
-          <h2>Mis cotizaciones</h2>
           <p>Entra con tu cuenta para guardar las cotizaciones que envías y saber cuándo tu cliente las abre.</p>
         </div>
       </div>
@@ -64,8 +63,7 @@ export function PanelHistorial({ irAlCotizador }: { irAlCotizador: () => void })
   }
 
   return (
-    <div className="panel panel-historial">
-      <h2 className="hist-titulo">Mis cotizaciones</h2>
+    <div className="panel-historial">
 
       <div className="hist-resumen">
         <div>

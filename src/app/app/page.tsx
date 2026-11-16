@@ -11,6 +11,7 @@ import { ProveedorCuenta } from "@/lib/cuenta";
 import { ProveedorCotizaciones, useCotizaciones } from "@/lib/cotizaciones";
 import { SincronizarNube } from "@/lib/nube";
 import { AvisoVistas, PanelHistorial } from "@/components/PanelHistorial";
+import { PanelClientes } from "@/components/PanelClientes";
 
 const PESTANAS = [
   { id: "disenar", etiqueta: "Diseñar", icono: "M4 20h16M6 16V8l6-4 6 4v8M10 16v-4h4v4" },
@@ -20,13 +21,15 @@ const PESTANAS = [
   { id: "cotizar", etiqueta: "Cotizar", icono: "M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4" },
 ] as const;
 
-type Id = (typeof PESTANAS)[number]["id"] | "precios" | "historial";
-const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios", "historial"];
+type Id = (typeof PESTANAS)[number]["id"] | "precios" | "historial" | "clientes";
+const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios", "historial", "clientes"];
 
 function App() {
   const { listo, resultado, precios, items, nuevoProyecto, configurado } = useEstado();
-  const { activas, nuevasVistas } = useCotizaciones();
+  const { activas, nuevasVistas, pendientesHoy } = useCotizaciones();
   const [tab, setTabEstado] = useState<Id>("disenar");
+  const enClientes = tab === "clientes" || tab === "historial";
+  const avisos = nuevasVistas.length + pendientesHoy;
   // La pestaña vive en la URL (#cortes, #cotizar…): el botón Atrás del celular vuelve a la pestaña anterior
   useEffect(() => {
     const leer = () => {
@@ -68,11 +71,11 @@ function App() {
             </button>
           )}
           {activas && (
-            <button className={`btn-icono${tab === "historial" ? " activo" : ""}`} aria-pressed={tab === "historial"} onClick={() => setTab(tab === "historial" ? "disenar" : "historial")}>
-              Enviadas
-              {nuevasVistas.length > 0 && tab !== "historial" && (
-                <span className="contador" aria-label={`${nuevasVistas.length} vistas nuevas`}>
-                  {nuevasVistas.length}
+            <button className={`btn-icono${enClientes ? " activo" : ""}`} aria-pressed={enClientes} onClick={() => setTab(enClientes ? "disenar" : "clientes")}>
+              Clientes
+              {avisos > 0 && !enClientes && (
+                <span className="contador" aria-label={`${avisos} pendientes`}>
+                  {avisos}
                 </span>
               )}
             </button>
@@ -101,10 +104,22 @@ function App() {
         {tab === "armado" && <PanelArmado />}
         {tab === "cotizar" && <PanelCotizar />}
         {tab === "precios" && <PanelPrecios />}
-        {tab === "historial" && <PanelHistorial irAlCotizador={() => setTab("disenar")} />}
+        {enClientes && (
+          <div className="panel">
+            <div className="cli-segmento" role="tablist">
+              <button role="tab" aria-selected={tab === "clientes"} className={tab === "clientes" ? "activo" : ""} onClick={() => setTab("clientes")}>
+                Clientes{pendientesHoy > 0 ? <span className="contador-in">{pendientesHoy}</span> : null}
+              </button>
+              <button role="tab" aria-selected={tab === "historial"} className={tab === "historial" ? "activo" : ""} onClick={() => setTab("historial")}>
+                Cotizaciones enviadas{nuevasVistas.length > 0 ? <span className="contador-in">{nuevasVistas.length}</span> : null}
+              </button>
+            </div>
+            {tab === "clientes" ? <PanelClientes irAlCotizador={() => setTab("disenar")} /> : <PanelHistorial irAlCotizador={() => setTab("disenar")} />}
+          </div>
+        )}
       </main>
 
-      {items.length > 0 && tab !== "cotizar" && tab !== "historial" && (
+      {items.length > 0 && tab !== "cotizar" && !enClientes && (
         <button className="total-flotante" onClick={() => setTab("cotizar")}>
           <span>
             {resultado.materiales.reduce((s, m) => s + m.laminas.length, 0)} láminas · {items.reduce((s, i) => s + i.cantidad, 0)} mueble(s)

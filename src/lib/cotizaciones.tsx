@@ -38,8 +38,47 @@ export interface NuevaCotizacion {
   datos: { items: Guardado["items"]; cliente: DatosCliente };
 }
 
+export interface Cliente {
+  clave: string;
+  nombre: string | null;
+  telefono: string | null;
+  nota: string | null;
+  /** Fecha (AAAA-MM-DD) en que toca volver a escribirle. */
+  proximo: string | null;
+  ultimo_contacto: string | null;
+  creado: string;
+}
+
+export interface CambioCliente {
+  nombre?: string;
+  telefono?: string;
+  nota?: string;
+  proximo?: string | null;
+  contactado?: boolean;
+}
+
+/** Clave de un cliente: su WhatsApp (solo números) o, si no tiene, su nombre. */
+export const claveCliente = (telefono?: string | null, nombre?: string | null) => {
+  const t = (telefono || "").replace(/\D/g, "");
+  if (t) return t;
+  const n = (nombre || "").trim().toLowerCase();
+  return n ? `n:${n}` : "";
+};
+
+/** Hoy en el reloj del celular, como AAAA-MM-DD. */
+export function hoyISO(dias = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 interface Ctx {
   activas: boolean;
+  clientes: Cliente[];
+  /** Clientes a los que hoy (o antes) tocaba escribirles. */
+  pendientesHoy: number;
+  guardarCliente: (clave: string, cambio: CambioCliente) => Promise<void>;
+  borrarCliente: (clave: string) => Promise<void>;
   lista: Cotizacion[];
   cargando: boolean;
   /** Cotizaciones que el cliente abrió desde la última vez que el carpintero miró el historial. */
@@ -68,12 +107,14 @@ export function ProveedorCotizaciones({ children }: { children: ReactNode }) {
   const [lista, setLista] = useState<Cotizacion[]>([]);
   const [cargando, setCargando] = useState(activas);
   const [conocidas, setConocidas] = useState<Record<string, number>>({});
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const primeraCarga = useRef(true);
 
   const recargar = useCallback(async () => {
     if (!activas) return;
-    const { data, error } = await supabase().rpc("im_mis_cotizaciones");
+    const [{ data, error }, cli] = await Promise.all([supabase().rpc("im_mis_cotizaciones"), supabase().rpc("im_mis_clientes")]);
     setCargando(false);
+    if (!cli.error && Array.isArray(cli.data)) setClientes(cli.data as Cliente[]);
     if (error || !Array.isArray(data)) return;
     const filas = (data as Cotizacion[]).map((c) => ({ ...c, total: Number(c.total), anticipo: Number(c.anticipo) }));
     setLista(filas);
@@ -148,10 +189,51 @@ export function ProveedorCotizaciones({ children }: { children: ReactNode }) {
     setConocidas(todas);
   }, [lista]);
 
+  const guardarCliente = useCallback(
+    async (clave: string, c: CambioCliente) => {
+      setClientes((l) => {
+        const actual = l.find((x) => x.clave === clave);
+        const base: Cliente = actual ?? { clave, nombre: null, telefono: null, nota: null, proximo: null, ultimo_contacto: null, creado: new Date().toISOString() };
+        const nuevo: Cliente = {
+          ...base,
+          nombre: c.nombre ?? base.nombre,
+          telefono: c.telefono ?? base.telefono,
+          nota: c.nota ?? base.nota,
+          proximo: c.proximo === undefined ? base.proximo : c.proximo,
+          ultimo_contacto: c.contactado ? new Date().toISOString() : base.ultimo_contacto,
+        };
+        return actual ? l.map((x) => (x.clave === clave ? nuevo : x)) : [...l, nuevo];
+      });
+      const { error } = await supabase().rpc("im_guardar_cliente", {
+        p_clave: clave,
+        p_nombre: c.nombre ?? null,
+        p_telefono: c.telefono ?? null,
+        p_nota: c.nota ?? null,
+        p_proximo: c.proximo ?? null,
+        p_limpiar_proximo: c.proximo === null,
+        p_contactado: Boolean(c.contactado),
+      });
+      if (error) void recargar();
+    },
+    [recargar],
+  );
+
+  const borrarCliente = useCallback(
+    async (clave: string) => {
+      setClientes((l) => l.filter((x) => x.clave !== clave));
+      const { error } = await supabase().rpc("im_borrar_cliente", { p_clave: clave });
+      if (error) void recargar();
+    },
+    [recargar],
+  );
+
+  const hoy = hoyISO();
+  const pendientesHoy = clientes.filter((c) => c.proximo && c.proximo <= hoy).length;
+
   const nuevasVistas = lista.filter((c) => c.vistas > (conocidas[c.id] ?? 0));
 
   return (
-    <Contexto.Provider value={{ activas, lista, cargando, nuevasVistas, recargar, registrar, cambiarEstado, borrar, marcarVistas }}>
+    <Contexto.Provider value={{ activas, clientes, pendientesHoy, guardarCliente, borrarCliente, lista, cargando, nuevasVistas, recargar, registrar, cambiarEstado, borrar, marcarVistas }}>
       {children}
     </Contexto.Provider>
   );

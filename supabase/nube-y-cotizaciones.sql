@@ -109,3 +109,7 @@ grant execute on function public.im_leer_datos(), public.im_guardar_datos(jsonb,
   public.im_mis_cotizaciones(), public.im_estado_cotizacion(uuid, text), public.im_borrar_cotizacion(uuid) to authenticated;
 revoke all on function public.im_cotizacion_vista(uuid) from public, authenticated;
 grant execute on function public.im_cotizacion_vista(uuid) to anon;
+
+-- Clientes (seguimiento): ver la migración inner_muebles_clientes aplicada el 2026-11-16.
+-- Tabla inner_muebles.clientes (usuario, clave = WhatsApp o "n:nombre", nombre, telefono, nota, proximo date, ultimo_contacto),
+-- RPCs im_mis_clientes, im_guardar_cliente, im_borrar_cliente; im_registrar_cotizacion crea el cliente con recordatorio a 2 días.
