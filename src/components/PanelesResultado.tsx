@@ -9,6 +9,7 @@ import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
 import { useFotos } from "@/lib/fotos";
 import { esPuerta } from "@/lib/motor/constructor";
+import { cuentasActivas, supabase } from "@/lib/supabase";
 import { condiciones, mensajeCliente, numeroCotizacion, pagos, validaHasta } from "@/lib/cotizacion";
 
 function Vacio() {
@@ -463,6 +464,14 @@ function HojaCotizacion({ imagenes, sin3d, logo, numero }: { imagenes: Record<st
   );
 }
 
+/** Sube el PDF a la nube y devuelve un link corto que cualquiera con el link puede abrir. */
+async function subirPdf(blob: Blob) {
+  const id = crypto.randomUUID();
+  const { error } = await supabase().storage.from("inner-muebles-cotizaciones").upload(`c/${id}.pdf`, blob, { contentType: "application/pdf", upsert: false });
+  if (error) throw error;
+  return `${location.origin}/c/${id}`;
+}
+
 export function PanelCotizar() {
   const { resultado, precios, cliente, setCliente, taller } = useEstado();
   const pdf = useAccionesPdf();
@@ -477,7 +486,6 @@ export function PanelCotizar() {
   const $ = (n: number) => formatoDinero(n, precios);
   const mensaje = mensajeCliente(resultado, precios, cliente, taller);
   const tel = cliente.telefono.replace(/\D/g, "");
-  const enlaceChat = `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`;
   const { pct, anticipo, saldo } = pagos(resultado.total, cliente);
   const piezas = resultado.muebles.reduce((s, m) => s + m.item.cantidad, 0);
   const faltaTaller = !taller.nombre || !taller.telefono;
@@ -498,14 +506,14 @@ export function PanelCotizar() {
     }
   }
 
-  async function enviar() {
+  /** Comparte el archivo con el menú del celular (solo muestra chats ya guardados). */
+  async function compartir() {
     setEnvio("armando");
     try {
       const { doc, nombre } = await pdf.docCotizacion(detallado, conTrabajos);
       const archivo = new File([doc.output("blob")], nombre, { type: "application/pdf" });
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (esMovil && nav.canShare?.({ files: [archivo] })) {
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && nav.canShare?.({ files: [archivo] })) {
         try {
           await navigator.share({ files: [archivo], text: mensaje, title: nombre });
           setEnvio("enviado");
@@ -514,11 +522,29 @@ export function PanelCotizar() {
         }
         return;
       }
-      // computador: se descarga el PDF y se abre el chat con el mensaje listo para adjuntarlo
       doc.save(nombre);
-      window.open(enlaceChat, "_blank", "noreferrer");
+      setEnvio("listo");
+    } catch {
+      setEnvio("error");
+    }
+  }
+
+  /** Abre el chat con el número del cliente (aunque no esté guardado) con el mensaje y el link al PDF. */
+  async function enviar() {
+    if (!cuentasActivas) return compartir();
+    // la pestaña se abre antes de subir el PDF para que el celular no la bloquee
+    const ventana = window.open("", "_blank");
+    setEnvio("armando");
+    try {
+      const { doc } = await pdf.docCotizacion(detallado, conTrabajos);
+      const link = await subirPdf(doc.output("blob"));
+      const texto = `${mensaje}\n\n📄 Cotización en PDF: ${link}`;
+      const destino = `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
+      if (ventana) ventana.location.href = destino;
+      else location.href = destino;
       setEnvio("enviado");
     } catch {
+      ventana?.close();
       setEnvio("error");
     }
   }
@@ -639,7 +665,7 @@ export function PanelCotizar() {
             {mensaje.split("\n").map((l, i) => (
               <p key={i}>{l.split(/(\*[^*]+\*)/g).map((t, j) => (t.startsWith("*") && t.endsWith("*") && t.length > 2 ? <b key={j}>{t.slice(1, -1)}</b> : t))}</p>
             ))}
-            <span className="cot-adjunto">PDF · Cotización con el diseño en 3D</span>
+            <span className="cot-adjunto">{cuentasActivas ? "📄 Cotización en PDF: link para abrirla" : "PDF · Cotización con el diseño en 3D"}</span>
           </div>
         )}
         <div className="cot-msg-acciones">
@@ -657,14 +683,20 @@ export function PanelCotizar() {
       <div className="cot-enviar">
         <button className="btn btn-enviar" onClick={enviar} disabled={envio === "armando"} aria-busy={envio === "armando"}>
           {envio === "armando" && <i className="girando" aria-hidden />}
-          {envio === "armando" ? "Preparando el PDF…" : "Enviar cotización por WhatsApp"}
+          {envio === "armando" ? "Preparando el PDF…" : `Enviar por WhatsApp${cliente.cliente ? ` a ${cliente.cliente.split(" ")[0]}` : ""}`}
         </button>
-        {envio === "enviado" && <p className="cot-ok">Listo. Si WhatsApp no adjuntó el PDF, arrástralo o adjúntalo desde Descargas.</p>}
-        {envio === "error" && <p className="cot-error">No se pudo preparar el PDF. Inténtalo de nuevo.</p>}
-        <a className="btn-sec" href={enlaceChat} target="_blank" rel="noreferrer">
-          Solo abrir el chat{cliente.cliente ? ` con ${cliente.cliente.split(" ")[0]}` : ""} con el mensaje
-        </a>
-        {!tel && <p className="nota">Sin número, WhatsApp te deja elegir el contacto.</p>}
+        {cuentasActivas && (
+          <p className="nota">
+            {tel ? "Funciona aunque no tengas el número guardado." : "Escribe el WhatsApp del cliente arriba, o elige el chat al abrir WhatsApp."} El mensaje lleva un link para abrir el PDF.
+          </p>
+        )}
+        {envio === "enviado" && <p className="cot-ok">Listo, revisa WhatsApp y toca enviar.</p>}
+        {envio === "error" && <p className="cot-error">No se pudo preparar el envío. Revisa tu internet e inténtalo de nuevo.</p>}
+        {cuentasActivas && (
+          <button className="btn-sec" onClick={compartir} disabled={envio === "armando"}>
+            Compartir el archivo PDF (contactos guardados)
+          </button>
+        )}
       </div>
 
       <details className="bloque cot-costos">
