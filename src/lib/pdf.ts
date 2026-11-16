@@ -5,6 +5,7 @@ import autoTable from "jspdf-autotable";
 import { colorMuebleRgb } from "./colores";
 import type { DatosCliente, DatosTaller } from "./estado";
 import { formatoDinero, mm } from "./estado";
+import { condiciones, numeroCotizacion } from "./cotizacion";
 import type { Lamina } from "./motor/optimizador";
 import { textoCantos, type Precios, type ResultadoProyecto } from "./motor/proyecto";
 import type { Configuracion, ResultadoMueble } from "./motor/tipos";
@@ -21,7 +22,7 @@ export interface ImagenesTaller {
   trabajos?: { url: string; titulo: string }[];
 }
 
-function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: DatosCliente, logo?: string | null) {
+function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: DatosCliente, logo?: string | null, numero?: string) {
   const w = doc.internal.pageSize.getWidth();
   let x = 14;
   if (logo) {
@@ -46,9 +47,9 @@ function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: Da
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...GRIS);
-  const izq = [taller.nombre || "Mi taller", [taller.telefono, taller.ciudad].filter(Boolean).join(" · ")].filter(Boolean);
+  const izq = [taller.nombre, [taller.telefono ? `WhatsApp ${taller.telefono}` : "", taller.ciudad].filter(Boolean).join(" · ")].filter(Boolean);
   doc.text(izq, x, 21);
-  const der = [`Fecha: ${hoy()}`, cliente.proyecto ? `Proyecto: ${cliente.proyecto}` : "", cliente.cliente ? `Cliente: ${cliente.cliente}` : ""].filter(Boolean);
+  const der = [numero ? `N.º ${numero}` : "", `Fecha: ${hoy()}`, cliente.proyecto ? `Proyecto: ${cliente.proyecto}` : "", cliente.cliente ? `Cliente: ${cliente.cliente}` : ""].filter(Boolean);
   doc.text(der, w - 14, 15, { align: "right" });
   doc.setDrawColor(220, 220, 220);
   doc.line(14, 30, w - 14, 30);
@@ -56,7 +57,7 @@ function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: Da
   return 36;
 }
 
-function pies(doc: jsPDF) {
+function pies(doc: jsPDF, taller?: DatosTaller) {
   const n = doc.getNumberOfPages();
   for (let i = 1; i <= n; i++) {
     doc.setPage(i);
@@ -65,7 +66,8 @@ function pies(doc: jsPDF) {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`Página ${i} de ${n}`, w - 14, h - 8, { align: "right" });
-    doc.text("Medidas en milímetros · Hecho con INNER Muebles", 14, h - 8);
+    const quien = taller?.nombre ? `${taller.nombre}${taller.telefono ? ` · ${taller.telefono}` : ""} · ` : "";
+    doc.text(`${quien}Medidas en milímetros · Hecho con INNER Muebles`, 14, h - 8);
   }
 }
 
@@ -225,7 +227,7 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
 /** PDF de cotización para el cliente final. */
 export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: DatosTaller, cliente: DatosCliente, detallado: boolean, imagenes: Record<string, string> = {}, propias: ImagenesTaller = {}) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = encabezado(doc, "Cotización", taller, cliente, propias.logo);
+  let y = encabezado(doc, "Cotización", taller, cliente, propias.logo, numeroCotizacion());
   const $ = (n: number) => formatoDinero(n, precios);
   const W = doc.internal.pageSize.getWidth();
   const factor = r.costoTotal > 0 ? r.subtotal / r.costoTotal : 1;
@@ -292,13 +294,42 @@ export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: Da
   doc.text("TOTAL", W - 80, y + 4.5);
   doc.text($(r.total), W - 17, y + 4.5, { align: "right" });
   y += 18;
+  // Condiciones de pago y entrega, y notas del carpintero
+  const lineas = [...condiciones(r, precios, cliente), ...(cliente.notas ? cliente.notas.split("\n").filter(Boolean) : [])];
+  doc.setFontSize(9.5);
+  const texto = lineas.flatMap((l) => doc.splitTextToSize(`•  ${l}`, W - 36) as string[]);
+  const altoCond = 12 + texto.length * 4.6;
+  const altoCta = 20;
+  if (y + altoCond + altoCta + 8 > 282) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(220, 226, 232);
+  doc.setFillColor(246, 248, 250);
+  doc.roundedRect(14, y, W - 28, altoCond, 2, 2, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
+  doc.setTextColor(30, 30, 30);
+  doc.text("Condiciones", 18, y + 7);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...GRIS);
-  const notas = [`Cotización válida por ${cliente.validezDias} días.`, ...(cliente.notas ? cliente.notas.split("\n") : [])];
-  doc.text(doc.splitTextToSize(notas.join("\n"), W - 28), 14, y);
+  doc.setFontSize(9.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text(texto, 18, y + 13);
+  y += altoCond + 6;
+  // Llamado a aprobar
+  doc.setFillColor(...MENTA);
+  doc.roundedRect(14, y, W - 28, altoCta, 2, 2, "F");
+  doc.setTextColor(...ACENTO);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("¿Empezamos?", 19, y + 8);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const contacto = taller.telefono ? `al WhatsApp ${taller.telefono}` : "a este mensaje";
+  doc.text(`Responde "APROBADO" ${contacto} y agendamos la fabricación.`, 19, y + 14.5);
+  y += altoCta + 6;
   if (propias.trabajos?.length) trabajosAnteriores(doc, propias.trabajos, taller);
-  pies(doc);
+  pies(doc, taller);
   return doc;
 }
 

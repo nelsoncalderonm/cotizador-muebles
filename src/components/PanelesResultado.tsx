@@ -8,6 +8,7 @@ import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
 import { useFotos } from "@/lib/fotos";
 import { esPuerta } from "@/lib/motor/constructor";
+import { condiciones, mensajeCliente, numeroCotizacion, pagos, validaHasta } from "@/lib/cotizacion";
 
 function Vacio() {
   return (
@@ -62,15 +63,13 @@ export function useAccionesPdf() {
       const { pdfPlanos, compartirPdf } = await import("@/lib/pdf");
       await compartirPdf(pdfPlanos(resultado, taller, cliente), nombreArchivo("planos", cliente.proyecto));
     },
-    cotizacion: async (detallado: boolean, conTrabajos = true) => {
-      const [{ pdfCotizacion, compartirPdf }, { imagenesProyecto }] = await Promise.all([import("@/lib/pdf"), import("@/lib/renders")]);
+    /** Arma el PDF de la cotización sin compartirlo (para verlo o enviarlo). */
+    docCotizacion: async (detallado: boolean, conTrabajos = true) => {
+      const [{ pdfCotizacion }, { imagenesProyecto }, { leerFotos }] = await Promise.all([import("@/lib/pdf"), import("@/lib/renders"), import("@/lib/fotos")]);
       const imagenes = await imagenesProyecto(resultado.muebles, config).catch(() => ({}));
-      const { leerFotos } = await import("@/lib/fotos");
       const propias = leerFotos();
-      await compartirPdf(
-        pdfCotizacion(resultado, precios, taller, cliente, detallado, imagenes, { logo: propias.logo, trabajos: conTrabajos ? propias.trabajos : [] }),
-        nombreArchivo("cotizacion", cliente.proyecto),
-      );
+      const doc = pdfCotizacion(resultado, precios, taller, cliente, detallado, imagenes, { logo: propias.logo, trabajos: conTrabajos ? propias.trabajos : [] });
+      return { doc, nombre: nombreArchivo("cotizacion", cliente.proyecto || cliente.cliente) };
     },
   };
 }
@@ -396,81 +395,279 @@ function BloqueProveedor() {
   );
 }
 
+
+type Envio = "listo" | "armando" | "enviado" | "error";
+
+/** Vista previa en HTML de la primera página del PDF: lo que el cliente va a abrir. */
+function HojaCotizacion({ imagenes, sin3d, logo, numero }: { imagenes: Record<string, string>; sin3d: boolean; logo: string | null; numero: string }) {
+  const { resultado, precios, cliente, taller } = useEstado();
+  const $ = (n: number) => formatoDinero(n, precios);
+  return (
+    <div className="hoja" aria-label="Vista previa del PDF">
+      <div className="hoja-cab">
+        {logo && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="" className="hoja-logo" />
+        )}
+        <div>
+          <b>Cotización</b>
+          <span>{taller.nombre || <em className="hoja-falta">Nombre de tu taller</em>}</span>
+          {taller.telefono && <span>WhatsApp {taller.telefono}</span>}
+        </div>
+        <div className="hoja-der">
+          <span>N.º {numero}</span>
+          {cliente.proyecto && <span>{cliente.proyecto}</span>}
+          {cliente.cliente && <span>Para: {cliente.cliente}</span>}
+        </div>
+      </div>
+      {resultado.muebles.map((m) => (
+        <div className="hoja-item" key={m.item.uid}>
+          {imagenes[m.item.uid] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imagenes[m.item.uid]} alt={`${m.item.nombre} en 3D`} />
+          ) : sin3d ? (
+            <VistaMueble vista={m.resultado.vista} />
+          ) : (
+            <div className="cargando-3d" aria-label="Dibujando el mueble en 3D" />
+          )}
+          <div>
+            <b>
+              {m.item.cantidad} × {m.item.nombre}
+            </b>
+            <small>
+              {mm(m.resultado.vista.ancho)} × {mm(m.resultado.vista.alto)} × {mm(Number(m.item.valores.fondo ?? 0))} mm
+            </small>
+          </div>
+        </div>
+      ))}
+      <div className="hoja-total">
+        <span>TOTAL</span>
+        <b>{$(resultado.total)}</b>
+      </div>
+      <ul className="hoja-cond">
+        {condiciones(resultado, precios, cliente).map((c) => (
+          <li key={c}>{c}</li>
+        ))}
+        {cliente.notas
+          .split("\n")
+          .filter(Boolean)
+          .map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+      </ul>
+      <div className="hoja-cta">
+        <b>¿Empezamos?</b> Responde “APROBADO” {taller.telefono ? `al WhatsApp ${taller.telefono}` : "a este mensaje"} y agendamos la fabricación.
+      </div>
+    </div>
+  );
+}
+
 export function PanelCotizar() {
   const { resultado, precios, cliente, setCliente, taller } = useEstado();
   const pdf = useAccionesPdf();
   const [detallado, setDetallado] = useState(false);
   const [conTrabajos, setConTrabajos] = useState(true);
+  const [editando, setEditando] = useState(false);
+  const [envio, setEnvio] = useState<Envio>("listo");
+  const [numero] = useState(() => numeroCotizacion());
   const { fotos } = useFotos();
   const { imagenes, sin3d } = useImagenes3D();
   if (!resultado.muebles.length) return <Vacio />;
   const $ = (n: number) => formatoDinero(n, precios);
-  const texto = encodeURIComponent(
-    [
-      `*Cotización${cliente.proyecto ? `: ${cliente.proyecto}` : ""}*`,
-      ...resultado.muebles.map((m) => `• ${m.item.cantidad} × ${m.item.nombre} (${mm(m.resultado.vista.ancho)}×${mm(m.resultado.vista.alto)} mm)`),
-      `*Total: ${$(resultado.total)}*`,
-      `Válida por ${cliente.validezDias} días.`,
-      taller.nombre ? `— ${taller.nombre}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  );
+  const mensaje = mensajeCliente(resultado, precios, cliente, taller);
   const tel = cliente.telefono.replace(/\D/g, "");
+  const enlaceChat = `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`;
+  const { pct, anticipo, saldo } = pagos(resultado.total, cliente);
+  const piezas = resultado.muebles.reduce((s, m) => s + m.item.cantidad, 0);
+  const faltaTaller = !taller.nombre || !taller.telefono;
+
+  async function verPdf() {
+    // la pestaña se abre antes del trabajo para que el navegador no la bloquee
+    const ventana = window.open("", "_blank");
+    setEnvio("armando");
+    try {
+      const { doc, nombre } = await pdf.docCotizacion(detallado, conTrabajos);
+      const url = URL.createObjectURL(doc.output("blob"));
+      if (ventana) ventana.location.href = url;
+      else doc.save(nombre);
+      setEnvio("listo");
+    } catch {
+      ventana?.close();
+      setEnvio("error");
+    }
+  }
+
+  async function enviar() {
+    setEnvio("armando");
+    try {
+      const { doc, nombre } = await pdf.docCotizacion(detallado, conTrabajos);
+      const archivo = new File([doc.output("blob")], nombre, { type: "application/pdf" });
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+      const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (esMovil && nav.canShare?.({ files: [archivo] })) {
+        try {
+          await navigator.share({ files: [archivo], text: mensaje, title: nombre });
+          setEnvio("enviado");
+        } catch (e) {
+          setEnvio((e as Error).name === "AbortError" ? "listo" : "error");
+        }
+        return;
+      }
+      // computador: se descarga el PDF y se abre el chat con el mensaje listo para adjuntarlo
+      doc.save(nombre);
+      window.open(enlaceChat, "_blank", "noreferrer");
+      setEnvio("enviado");
+    } catch {
+      setEnvio("error");
+    }
+  }
+
   return (
-    <div className="panel">
-      <div className="panel-cab">
-        <h2>Cotización</h2>
+    <div className="panel panel-cotizar">
+      <div className="cot-resumen">
+        <div>
+          <span>Precio al cliente</span>
+          <strong>{$(resultado.total)}</strong>
+          <small>
+            {piezas} mueble{piezas === 1 ? "" : "s"} · válido hasta el {validaHasta(cliente)}
+          </small>
+        </div>
+        {pct > 0 && pct < 100 && (
+          <div className="cot-pagos">
+            <span>
+              Anticipo {pct} % <b>{$(anticipo)}</b>
+            </span>
+            <span>
+              Contra entrega <b>{$(saldo)}</b>
+            </span>
+          </div>
+        )}
       </div>
-      <div className="grid-campos">
+
+      <section className="bloque cot-paso">
+        <h3>
+          <i>1</i> ¿Para quién es?
+        </h3>
+        <div className="grid-campos">
+          <label className="campo">
+            <span>Nombre del cliente</span>
+            <input value={cliente.cliente} placeholder="Laura Martínez" autoComplete="off" onChange={(e) => setCliente({ ...cliente, cliente: e.target.value })} />
+          </label>
+          <label className="campo">
+            <span>WhatsApp del cliente</span>
+            <input type="tel" inputMode="tel" value={cliente.telefono} placeholder="57 300 123 4567" onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} />
+          </label>
+        </div>
         <label className="campo">
           <span>Proyecto</span>
-          <input value={cliente.proyecto} placeholder="Cocina Sra. Martínez" onChange={(e) => setCliente({ ...cliente, proyecto: e.target.value })} />
+          <input value={cliente.proyecto} placeholder="Clóset alcoba principal" onChange={(e) => setCliente({ ...cliente, proyecto: e.target.value })} />
         </label>
-        <label className="campo">
-          <span>Cliente</span>
-          <input value={cliente.cliente} onChange={(e) => setCliente({ ...cliente, cliente: e.target.value })} />
-        </label>
-        <label className="campo">
-          <span>WhatsApp del cliente</span>
-          <input type="tel" inputMode="tel" value={cliente.telefono} placeholder="573001234567" onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} />
-        </label>
-        <label className="campo">
-          <span>Validez (días)</span>
-          <input type="number" inputMode="numeric" value={cliente.validezDias} onChange={(e) => setCliente({ ...cliente, validezDias: Number(e.target.value) || 0 })} />
-        </label>
-      </div>
-      <label className="campo">
-        <span>Notas para el cliente</span>
-        <textarea rows={2} value={cliente.notas} placeholder="Incluye instalación. 50 % de anticipo." onChange={(e) => setCliente({ ...cliente, notas: e.target.value })} />
-      </label>
-
-      <section className="bloque">
-        <h3>Así lo verá tu cliente</h3>
-        <div className="galeria-cotizar">
-          {resultado.muebles.map((m) => (
-            <figure key={m.item.uid}>
-              {imagenes[m.item.uid] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagenes[m.item.uid]} alt={`${m.item.nombre} en 3D`} />
-              ) : sin3d ? (
-                <VistaMueble vista={m.resultado.vista} />
-              ) : (
-                <div className="cargando-3d" aria-label="Dibujando el mueble en 3D" />
-              )}
-              <figcaption>
-                {m.item.cantidad} × {m.item.nombre}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-        <p className="nota">Esta imagen en 3D va en el PDF de la cotización, con el ambiente y los colores que elegiste al diseñar.</p>
       </section>
 
-      <BloqueProveedor />
+      <section className="bloque cot-paso">
+        <h3>
+          <i>2</i> Condiciones
+        </h3>
+        <div className="campo">
+          <span>Anticipo para empezar</span>
+          <div className="segmentos cot-chips" role="group" aria-label="Anticipo">
+            {[0, 30, 50, 70, 100].map((n) => (
+              <button key={n} className={cliente.anticipoPorcentaje === n ? "activo" : ""} aria-pressed={cliente.anticipoPorcentaje === n} onClick={() => setCliente({ ...cliente, anticipoPorcentaje: n })}>
+                {n === 0 ? "Sin anticipo" : `${n} %`}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid-campos">
+          <label className="campo">
+            <span>Entrega (días hábiles)</span>
+            <input type="number" inputMode="numeric" min={0} value={cliente.entregaDias || ""} placeholder="Ej. 15" onChange={(e) => setCliente({ ...cliente, entregaDias: Number(e.target.value) || 0 })} />
+          </label>
+          <label className="campo">
+            <span>Precio válido (días)</span>
+            <input type="number" inputMode="numeric" min={1} value={cliente.validezDias} onChange={(e) => setCliente({ ...cliente, validezDias: Number(e.target.value) || 0 })} />
+          </label>
+        </div>
+        <label className="campo">
+          <span>Notas para el cliente</span>
+          <textarea rows={2} value={cliente.notas} placeholder="Incluye instalación y transporte." onChange={(e) => setCliente({ ...cliente, notas: e.target.value })} />
+        </label>
+        <div className="cot-opciones">
+          <label className="campo campo-switch">
+            <span>Mostrar desglose de costos al cliente</span>
+            <input type="checkbox" checked={detallado} onChange={(e) => setDetallado(e.target.checked)} />
+            <i aria-hidden />
+          </label>
+          {fotos.trabajos.length > 0 && (
+            <label className="campo campo-switch">
+              <span>Incluir fotos de mis trabajos ({fotos.trabajos.length})</span>
+              <input type="checkbox" checked={conTrabajos} onChange={(e) => setConTrabajos(e.target.checked)} />
+              <i aria-hidden />
+            </label>
+          )}
+        </div>
+      </section>
 
-      <section className="bloque">
-        <h3>Costos</h3>
+      <section className="bloque cot-paso">
+        <h3>
+          <i>3</i> Así le llega a tu cliente
+        </h3>
+        {faltaTaller && (
+          <p className="cot-aviso">
+            Tu cotización sale sin {!taller.nombre ? "nombre del taller" : "tu WhatsApp"}. Complétalo en <a href="#precios">Mis precios</a> para que el cliente sepa a quién responder.
+            {!fotos.logo && " Ahí también puedes subir tu logo."}
+          </p>
+        )}
+        <HojaCotizacion imagenes={imagenes} sin3d={sin3d} logo={fotos.logo} numero={numero} />
+        <button className="btn-sec cot-ver" onClick={verPdf} disabled={envio === "armando"}>
+          Ver el PDF completo
+        </button>
+      </section>
+
+      <section className="bloque cot-paso">
+        <h3>
+          <i>4</i> Mensaje de WhatsApp
+        </h3>
+        {editando ? (
+          <label className="campo">
+            <span className="solo-lector">Mensaje para el cliente</span>
+            <textarea rows={9} value={mensaje} onChange={(e) => setCliente({ ...cliente, mensaje: e.target.value })} />
+          </label>
+        ) : (
+          <div className="cot-burbuja">
+            {mensaje.split("\n").map((l, i) => (
+              <p key={i}>{l.split(/(\*[^*]+\*)/g).map((t, j) => (t.startsWith("*") && t.endsWith("*") && t.length > 2 ? <b key={j}>{t.slice(1, -1)}</b> : t))}</p>
+            ))}
+            <span className="cot-adjunto">PDF · Cotización con el diseño en 3D</span>
+          </div>
+        )}
+        <div className="cot-msg-acciones">
+          <button className="btn-texto" onClick={() => setEditando(!editando)}>
+            {editando ? "Listo" : "Editar mensaje"}
+          </button>
+          {cliente.mensaje && (
+            <button className="btn-texto" onClick={() => setCliente({ ...cliente, mensaje: "" })}>
+              Volver al mensaje automático
+            </button>
+          )}
+        </div>
+      </section>
+
+      <div className="cot-enviar">
+        <button className="btn btn-enviar" onClick={enviar} disabled={envio === "armando"} aria-busy={envio === "armando"}>
+          {envio === "armando" && <i className="girando" aria-hidden />}
+          {envio === "armando" ? "Preparando el PDF…" : "Enviar cotización por WhatsApp"}
+        </button>
+        {envio === "enviado" && <p className="cot-ok">Listo. Si WhatsApp no adjuntó el PDF, arrástralo o adjúntalo desde Descargas.</p>}
+        {envio === "error" && <p className="cot-error">No se pudo preparar el PDF. Inténtalo de nuevo.</p>}
+        <a className="btn-sec" href={enlaceChat} target="_blank" rel="noreferrer">
+          Solo abrir el chat{cliente.cliente ? ` con ${cliente.cliente.split(" ")[0]}` : ""} con el mensaje
+        </a>
+        {!tel && <p className="nota">Sin número, WhatsApp te deja elegir el contacto.</p>}
+      </div>
+
+      <details className="bloque cot-costos">
+        <summary>Tus costos (solo los ves tú)</summary>
         <div className="tabla-costos">
           {resultado.costos.map((c, i) => (
             <div key={i} className="fila">
@@ -512,29 +709,11 @@ export function PanelCotizar() {
             <span className="num">{$(resultado.total)}</span>
           </div>
         </div>
-      </section>
+      </details>
 
-      {fotos.trabajos.length > 0 ? (
-        <label className="campo campo-switch">
-          <span>Incluir fotos de mis trabajos ({fotos.trabajos.length})</span>
-          <input type="checkbox" checked={conTrabajos} onChange={(e) => setConTrabajos(e.target.checked)} />
-          <i aria-hidden />
-        </label>
-      ) : (
-        <p className="nota">
-          Consejo: sube tu logo y fotos de muebles que ya hiciste en <a href="#precios">Mis precios</a> y saldrán en esta cotización.
-        </p>
-      )}
-      <label className="campo campo-switch">
-        <span>Mostrar desglose de costos al cliente</span>
-        <input type="checkbox" checked={detallado} onChange={(e) => setDetallado(e.target.checked)} />
-        <i aria-hidden />
-      </label>
+      <BloqueProveedor />
+
       <div className="acciones apiladas">
-        <BotonPdf principal etiqueta="PDF de cotización para el cliente" generar={() => pdf.cotizacion(detallado, conTrabajos)} />
-        <a className="btn-wa" href={`https://wa.me/${tel}?text=${texto}`} target="_blank" rel="noreferrer">
-          Enviar resumen por WhatsApp
-        </a>
         <BotonPdf etiqueta="PDF de cortes para el proveedor" generar={pdf.proveedor} />
         <BotonPdf etiqueta="PDF de planos de armado" generar={pdf.planos} />
       </div>

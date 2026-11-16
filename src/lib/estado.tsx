@@ -12,6 +12,12 @@ export interface DatosCliente {
   telefono: string;
   notas: string;
   validezDias: number;
+  /** Porcentaje de anticipo que se pide para empezar (0 = no se muestra). */
+  anticipoPorcentaje: number;
+  /** Días hábiles de fabricación e instalación (0 = no se muestra). */
+  entregaDias: number;
+  /** Mensaje de WhatsApp escrito a mano; vacío = se arma solo. */
+  mensaje: string;
 }
 
 export interface DatosTaller {
@@ -40,7 +46,7 @@ const INICIAL: Guardado = {
   items: [],
   config: CONFIG_DEFECTO,
   precios: PRECIOS_DEFECTO,
-  cliente: { proyecto: "", cliente: "", telefono: "", notas: "", validezDias: 15 },
+  cliente: { proyecto: "", cliente: "", telefono: "", notas: "", validezDias: 15, anticipoPorcentaje: 50, entregaDias: 0, mensaje: "" },
   taller: { nombre: "", telefono: "", ciudad: "" },
   configurado: false,
 };

@@ -2202,3 +2202,246 @@ p.avisos {
   color: var(--suave);
   font-weight: 500;
 }
+
+/* ---------- enviar cotización ---------- */
+.cot-resumen {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: var(--radio);
+  background: var(--marino);
+  color: #fff;
+}
+.cot-resumen span {
+  display: block;
+  font-size: 0.8rem;
+  color: #a9b6c8;
+}
+.cot-resumen strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--menta);
+  font-variant-numeric: tabular-nums;
+}
+.cot-resumen small {
+  color: #a9b6c8;
+}
+.cot-pagos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #26405f;
+}
+.cot-pagos b {
+  display: block;
+  color: #fff;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.cot-paso h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cot-paso h3 i {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--marino);
+  color: var(--menta);
+  font-style: normal;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.cot-chips button {
+  flex: 1 1 0;
+  min-width: 56px;
+  padding: 8px 6px;
+}
+.cot-opciones {
+  margin-top: 4px;
+  border-top: 1px solid var(--borde);
+}
+.cot-aviso {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--aviso);
+  font-size: 0.88rem;
+}
+.cot-ver {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* hoja: siempre papel blanco, como el PDF */
+.hoja {
+  padding: 16px 14px;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e1e1e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  border-top: 4px solid #0b1f3a;
+  box-shadow: 0 1px 0 #00d9a3 inset, 0 10px 30px -14px rgba(11, 31, 58, 0.45), 0 0 0 1px #dce3ea;
+}
+.hoja-cab {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e3e3e3;
+}
+.hoja-cab > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.hoja-cab b {
+  font-size: 1.05rem;
+}
+.hoja-cab span {
+  color: #5a5a5a;
+}
+.hoja-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: none;
+}
+.hoja-der {
+  margin-left: auto;
+  text-align: right;
+}
+.hoja-falta {
+  color: #b42318;
+  font-style: normal;
+}
+.hoja-item {
+  display: grid;
+  grid-template-columns: 46% 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  margin-bottom: 8px;
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+}
+.hoja-item img,
+.hoja-item svg,
+.hoja-item .cargando-3d {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.hoja-item b,
+.hoja-item small {
+  display: block;
+}
+.hoja-item small {
+  color: #5a5a5a;
+}
+.hoja-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 10px auto;
+  width: min(100%, 220px);
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0b1f3a;
+  color: #fff;
+  font-weight: 700;
+}
+.hoja-total b {
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.hoja-cond {
+  margin: 0 0 10px;
+  padding: 8px 10px 8px 24px;
+  border-radius: 6px;
+  background: #f6f8fa;
+  border: 1px solid #dce2e8;
+  color: #3c3c3c;
+}
+.hoja-cta {
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: #00d9a3;
+  color: #0b1f3a;
+}
+
+/* burbuja de WhatsApp */
+.cot-burbuja {
+  position: relative;
+  margin-left: auto;
+  max-width: 92%;
+  padding: 10px 12px 8px;
+  border-radius: 12px 2px 12px 12px;
+  background: #d9fdd3;
+  color: #111b21;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+.cot-burbuja p {
+  margin: 0;
+  min-height: 0.7em;
+  overflow-wrap: anywhere;
+}
+.cot-adjunto {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.cot-msg-acciones {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.cot-enviar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.btn-enviar {
+  min-height: 54px;
+  gap: 10px;
+  background: #1f8f4e;
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+.cot-ok,
+.cot-error {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.cot-ok {
+  color: var(--ok);
+}
+.cot-error {
+  color: var(--peligro);
+}
+.cot-costos summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.cot-costos[open] summary {
+  margin-bottom: 10px;
+}
