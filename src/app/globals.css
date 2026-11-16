@@ -2092,3 +2092,113 @@ p.avisos {
   background: var(--superficie);
   color: var(--texto);
 }
+
+/* ---------- logo y fotos del taller ---------- */
+.mi-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.mi-logo-caja {
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  border: 1px dashed var(--borde);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #fff;
+  color: var(--suave);
+  font-size: 0.78rem;
+}
+
+.mi-logo-caja img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mi-logo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mis-trabajos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(46%, 170px), 1fr));
+  gap: 10px;
+}
+
+.mis-trabajos figure {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--superficie);
+}
+
+.mis-trabajos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.mis-trabajos figure input {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-top: 1px solid var(--borde);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  background: transparent;
+  color: var(--texto);
+}
+
+.mis-trabajos-quitar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(11, 31, 58, 0.72);
+  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.mis-trabajos-agregar {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  min-height: 150px;
+  border: 1.5px dashed var(--borde);
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--acento);
+}
+
+.mis-trabajos-agregar svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mis-trabajos-agregar small {
+  color: var(--suave);
+  font-weight: 500;
+}

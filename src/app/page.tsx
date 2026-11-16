@@ -99,6 +99,26 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="ld-foto" aria-labelledby="ld-foto-t">
+        <picture>
+          <source type="image/webp" srcSet="/fotos/carpintero-midiendo-900.webp 900w, /fotos/carpintero-midiendo-1800.webp 1800w" sizes="100vw" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/fotos/carpintero-midiendo-900.jpg"
+            srcSet="/fotos/carpintero-midiendo-900.jpg 900w, /fotos/carpintero-midiendo-1800.jpg 1800w"
+            sizes="100vw"
+            alt="Carpintero marcando con lápiz una medida sobre una tabla, junto a la sierra ingletadora"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
+        <div className="ld-wrap ld-foto-txt">
+          <p className="ld-eyebrow">Hecho para el taller</p>
+          <h2 id="ld-foto-t">Tú pones el metro y el lápiz. La app hace las cuentas.</h2>
+          <p className="ld-sub">Pensada con carpinteros que trabajan en obra, con aserrín en las manos y el cliente esperando el precio.</p>
+        </div>
+      </section>
+
       <section className="ld-sec">
         <div className="ld-wrap">
           <p className="ld-eyebrow">Así de fácil</p>

@@ -6,6 +6,7 @@ import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
 import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
+import { useFotos } from "@/lib/fotos";
 import { esPuerta } from "@/lib/motor/constructor";
 
 function Vacio() {
@@ -54,17 +55,22 @@ export function useAccionesPdf() {
   const { resultado, config, taller, cliente, precios } = useEstado();
   return {
     proveedor: async () => {
-      const { pdfProveedor, compartirPdf } = await import("@/lib/pdf");
-      await compartirPdf(pdfProveedor(resultado, config, taller, cliente), nombreArchivo("orden-de-corte", cliente.proyecto));
+      const [{ pdfProveedor, compartirPdf }, { leerFotos }] = await Promise.all([import("@/lib/pdf"), import("@/lib/fotos")]);
+      await compartirPdf(pdfProveedor(resultado, config, taller, cliente, leerFotos().logo), nombreArchivo("orden-de-corte", cliente.proyecto));
     },
     planos: async () => {
       const { pdfPlanos, compartirPdf } = await import("@/lib/pdf");
       await compartirPdf(pdfPlanos(resultado, taller, cliente), nombreArchivo("planos", cliente.proyecto));
     },
-    cotizacion: async (detallado: boolean) => {
+    cotizacion: async (detallado: boolean, conTrabajos = true) => {
       const [{ pdfCotizacion, compartirPdf }, { imagenesProyecto }] = await Promise.all([import("@/lib/pdf"), import("@/lib/renders")]);
       const imagenes = await imagenesProyecto(resultado.muebles, config).catch(() => ({}));
-      await compartirPdf(pdfCotizacion(resultado, precios, taller, cliente, detallado, imagenes), nombreArchivo("cotizacion", cliente.proyecto));
+      const { leerFotos } = await import("@/lib/fotos");
+      const propias = leerFotos();
+      await compartirPdf(
+        pdfCotizacion(resultado, precios, taller, cliente, detallado, imagenes, { logo: propias.logo, trabajos: conTrabajos ? propias.trabajos : [] }),
+        nombreArchivo("cotizacion", cliente.proyecto),
+      );
     },
   };
 }
@@ -394,6 +400,8 @@ export function PanelCotizar() {
   const { resultado, precios, cliente, setCliente, taller } = useEstado();
   const pdf = useAccionesPdf();
   const [detallado, setDetallado] = useState(false);
+  const [conTrabajos, setConTrabajos] = useState(true);
+  const { fotos } = useFotos();
   const { imagenes, sin3d } = useImagenes3D();
   if (!resultado.muebles.length) return <Vacio />;
   const $ = (n: number) => formatoDinero(n, precios);
@@ -506,13 +514,24 @@ export function PanelCotizar() {
         </div>
       </section>
 
+      {fotos.trabajos.length > 0 ? (
+        <label className="campo campo-switch">
+          <span>Incluir fotos de mis trabajos ({fotos.trabajos.length})</span>
+          <input type="checkbox" checked={conTrabajos} onChange={(e) => setConTrabajos(e.target.checked)} />
+          <i aria-hidden />
+        </label>
+      ) : (
+        <p className="nota">
+          Consejo: sube tu logo y fotos de muebles que ya hiciste en <a href="#precios">Mis precios</a> y saldrán en esta cotización.
+        </p>
+      )}
       <label className="campo campo-switch">
         <span>Mostrar desglose de costos al cliente</span>
         <input type="checkbox" checked={detallado} onChange={(e) => setDetallado(e.target.checked)} />
         <i aria-hidden />
       </label>
       <div className="acciones apiladas">
-        <BotonPdf principal etiqueta="PDF de cotización para el cliente" generar={() => pdf.cotizacion(detallado)} />
+        <BotonPdf principal etiqueta="PDF de cotización para el cliente" generar={() => pdf.cotizacion(detallado, conTrabajos)} />
         <a className="btn-wa" href={`https://wa.me/${tel}?text=${texto}`} target="_blank" rel="noreferrer">
           Enviar resumen por WhatsApp
         </a>

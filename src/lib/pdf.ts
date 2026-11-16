@@ -15,8 +15,26 @@ const GRIS: [number, number, number] = [90, 90, 90];
 
 const hoy = () => new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
 
-function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: DatosCliente) {
+/** Logo del taller y fotos de trabajos, si el carpintero las subió. */
+export interface ImagenesTaller {
+  logo?: string | null;
+  trabajos?: { url: string; titulo: string }[];
+}
+
+function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: DatosCliente, logo?: string | null) {
   const w = doc.internal.pageSize.getWidth();
+  let x = 14;
+  if (logo) {
+    try {
+      const p = doc.getImageProperties(logo);
+      const alto = 18;
+      const ancho = Math.min(40, (p.width / p.height) * alto);
+      doc.addImage(logo, "JPEG", 14, 8, ancho, (p.height / p.width) * ancho);
+      x = 14 + ancho + 5;
+    } catch {
+      /* logo dañado: se omite */
+    }
+  }
   doc.setFillColor(...ACENTO);
   doc.rect(0, 0, w, 3, "F");
   doc.setFillColor(...MENTA);
@@ -24,12 +42,12 @@ function encabezado(doc: jsPDF, titulo: string, taller: DatosTaller, cliente: Da
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(30, 30, 30);
-  doc.text(titulo, 14, 15);
+  doc.text(titulo, x, 15);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...GRIS);
   const izq = [taller.nombre || "Mi taller", [taller.telefono, taller.ciudad].filter(Boolean).join(" · ")].filter(Boolean);
-  doc.text(izq, 14, 21);
+  doc.text(izq, x, 21);
   const der = [`Fecha: ${hoy()}`, cliente.proyecto ? `Proyecto: ${cliente.proyecto}` : "", cliente.cliente ? `Cliente: ${cliente.cliente}` : ""].filter(Boolean);
   doc.text(der, w - 14, 15, { align: "right" });
   doc.setDrawColor(220, 220, 220);
@@ -144,9 +162,9 @@ function dibujarLamina(doc: jsPDF, lamina: Lamina, x: number, y: number, w: numb
 }
 
 /** PDF para el proveedor que corta y cantea: lista de cortes + mapa de cada lámina. */
-export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: DatosTaller, cliente: DatosCliente) {
+export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: DatosTaller, cliente: DatosCliente, logo?: string | null) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = encabezado(doc, "Orden de corte y canteado", taller, cliente);
+  let y = encabezado(doc, "Orden de corte y canteado", taller, cliente, logo);
   doc.setFontSize(9);
   doc.text(
     [
@@ -205,9 +223,9 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
 }
 
 /** PDF de cotización para el cliente final. */
-export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: DatosTaller, cliente: DatosCliente, detallado: boolean, imagenes: Record<string, string> = {}) {
+export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: DatosTaller, cliente: DatosCliente, detallado: boolean, imagenes: Record<string, string> = {}, propias: ImagenesTaller = {}) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = encabezado(doc, "Cotización", taller, cliente);
+  let y = encabezado(doc, "Cotización", taller, cliente, propias.logo);
   const $ = (n: number) => formatoDinero(n, precios);
   const W = doc.internal.pageSize.getWidth();
   const factor = r.costoTotal > 0 ? r.subtotal / r.costoTotal : 1;
@@ -279,8 +297,58 @@ export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: Da
   doc.setTextColor(...GRIS);
   const notas = [`Cotización válida por ${cliente.validezDias} días.`, ...(cliente.notas ? cliente.notas.split("\n") : [])];
   doc.text(doc.splitTextToSize(notas.join("\n"), W - 28), 14, y);
+  if (propias.trabajos?.length) trabajosAnteriores(doc, propias.trabajos, taller);
   pies(doc);
   return doc;
+}
+
+/** Página con fotos de trabajos que el taller ya hizo. */
+function trabajosAnteriores(doc: jsPDF, trabajos: { url: string; titulo: string }[], taller: DatosTaller) {
+  doc.addPage();
+  const W = doc.internal.pageSize.getWidth();
+  doc.setFillColor(...ACENTO);
+  doc.rect(0, 0, W, 3, "F");
+  doc.setFillColor(...MENTA);
+  doc.rect(0, 3, W, 0.8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(30, 30, 30);
+  doc.text("Algunos de nuestros trabajos", 14, 17);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...GRIS);
+  doc.text(taller.nombre ? `Muebles fabricados por ${taller.nombre}` : "Muebles fabricados por nuestro taller", 14, 23);
+  const gap = 6;
+  const ancho = (W - 28 - gap) / 2;
+  const alto = ancho * 0.75;
+  trabajos.slice(0, 6).forEach((t, i) => {
+    const x = 14 + (i % 2) * (ancho + gap);
+    const y = 30 + Math.floor(i / 2) * (alto + 14);
+    try {
+      const p = doc.getImageProperties(t.url);
+      // recorte centrado a 4:3 para que todas las fotos queden parejas
+      const r = p.width / p.height;
+      doc.saveGraphicsState();
+      doc.roundedRect(x, y, ancho, alto, 2, 2, null as unknown as string);
+      doc.clip();
+      doc.discardPath();
+      if (r > 4 / 3) {
+        const w = alto * r;
+        doc.addImage(t.url, "JPEG", x - (w - ancho) / 2, y, w, alto);
+      } else {
+        const h = ancho / r;
+        doc.addImage(t.url, "JPEG", x, y - (h - alto) / 2, ancho, h);
+      }
+      doc.restoreGraphicsState();
+    } catch {
+      return;
+    }
+    if (t.titulo) {
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 30, 30);
+      doc.text(t.titulo, x, y + alto + 5);
+    }
+  });
 }
 
 /** Planos de fabricación: por mueble, vistas con cotas, despiece y pasos de armado. */

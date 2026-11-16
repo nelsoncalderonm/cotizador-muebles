@@ -1,5 +1,8 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { MAX_TRABAJOS, useFotos } from "@/lib/fotos";
+
 import { useEstado } from "@/lib/estado";
 import { NOMBRES_PRECIO_HERRAJE } from "@/lib/motor/defaults";
 import { useCuenta } from "@/lib/cuenta";
@@ -15,6 +18,106 @@ function Num({ etiqueta, valor, onCambio, sufijo }: { etiqueta: string; valor: n
         {sufijo && <em>{sufijo}</em>}
       </div>
     </label>
+  );
+}
+
+function MisFotos() {
+  const { fotos, ponerLogo, quitarLogo, agregarTrabajos, tituloTrabajo, quitarTrabajo } = useFotos();
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState("");
+  const logoInput = useRef<HTMLInputElement>(null);
+  const trabajosInput = useRef<HTMLInputElement>(null);
+  const quedan = MAX_TRABAJOS - fotos.trabajos.length;
+
+  async function conEspera(f: () => Promise<boolean>) {
+    setError("");
+    setOcupado(true);
+    try {
+      if (!(await f())) setError("No hay espacio en este celular para más fotos. Quita alguna e intenta de nuevo.");
+    } catch {
+      setError("No se pudo leer esa imagen. Prueba con una foto JPG o PNG.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <details className="bloque plegable" open>
+      <summary>Mi logo y fotos de mis trabajos</summary>
+      <p className="nota">Tu logo sale en los PDF. Las fotos de trabajos que ya hiciste van al final de la cotización para que el cliente confíe en ti.</p>
+
+      <div className="mi-logo">
+        <div className="mi-logo-caja">
+          {fotos.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fotos.logo} alt="Logo del taller" />
+          ) : (
+            <span>Sin logo</span>
+          )}
+        </div>
+        <div className="mi-logo-acciones">
+          <button className="btn-sec" disabled={ocupado} onClick={() => logoInput.current?.click()}>
+            {fotos.logo ? "Cambiar logo" : "Subir logo o foto del taller"}
+          </button>
+          {fotos.logo && (
+            <button className="btn-peligro" onClick={quitarLogo}>
+              Quitar
+            </button>
+          )}
+        </div>
+        <input
+          ref={logoInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) conEspera(() => ponerLogo(f));
+          }}
+        />
+      </div>
+
+      <div className="mis-trabajos">
+        {fotos.trabajos.map((t) => (
+          <figure key={t.id}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={t.url} alt={t.titulo || "Trabajo realizado"} />
+            <input value={t.titulo} placeholder="Ej.: Cocina en Chía" maxLength={40} onChange={(e) => tituloTrabajo(t.id, e.target.value)} aria-label="Nombre del trabajo" />
+            <button className="mis-trabajos-quitar" onClick={() => quitarTrabajo(t.id)} aria-label="Quitar foto">
+              ×
+            </button>
+          </figure>
+        ))}
+        {quedan > 0 && (
+          <button className="mis-trabajos-agregar" disabled={ocupado} onClick={() => trabajosInput.current?.click()}>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {ocupado ? "Guardando…" : "Agregar fotos"}
+            <small>Quedan {quedan}</small>
+          </button>
+        )}
+        <input
+          ref={trabajosInput}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={(e) => {
+            const lista = Array.from(e.target.files ?? []);
+            e.target.value = "";
+            if (lista.length) conEspera(() => agregarTrabajos(lista));
+          }}
+        />
+      </div>
+      {error && (
+        <p className="acceso-error" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="nota">Las fotos quedan guardadas en este celular o computador.</p>
+    </details>
   );
 }
 
@@ -50,7 +153,9 @@ export function PanelPrecios() {
         </div>
       </details>
 
-      <details className="bloque plegable" open>
+      <MisFotos />
+
+      <details className="bloque plegable">
         <summary>Tableros</summary>
         {claves.map((k) => {
           const m = config.materiales[k];
