@@ -124,8 +124,10 @@ export function PanelDisenar() {
             </button>
           )}
         </div>
-        {!eligiendo && <DictarVoz />}
-        <FotoReferencia />
+        <div className="entradas">
+          {!eligiendo && <DictarVoz />}
+          <FotoReferencia />
+        </div>
         <Catalogo
           onElegir={(id) => {
             agregar(id);
@@ -137,8 +139,10 @@ export function PanelDisenar() {
 
   return (
     <div className="panel">
-      <DictarVoz />
-      <FotoReferencia />
+      <div className="entradas">
+        <DictarVoz />
+        <FotoReferencia />
+      </div>
       <div className="chips" role="tablist">
         {items.map((i) => (
           <button key={i.uid} role="tab" aria-selected={i.uid === seleccion} className={`chip${i.uid === seleccion ? " activo" : ""}`} onClick={() => seleccionar(i.uid)}>
