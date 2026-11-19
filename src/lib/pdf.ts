@@ -9,6 +9,75 @@ import { condiciones, numeroCotizacion } from "./cotizacion";
 import type { Lamina } from "./motor/optimizador";
 import { textoCantos, type Precios, type ResultadoProyecto } from "./motor/proyecto";
 import type { Configuracion, ResultadoMueble } from "./motor/tipos";
+import { HERRAMIENTAS, herramientasUsadas, perforaciones, type PlanoPieza } from "./motor/perforaciones";
+
+const hexRgb = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+
+/** Dibujo de una pieza con sus perforaciones y cotas (mismo criterio que en la app). */
+function dibujarPlanoPerf(doc: jsPDF, plano: PlanoPieza, x0: number, y0: number, wMax: number, hMax: number) {
+  const mi = 12, ab = 12; // margen para cotas a la izquierda y abajo
+  const k = Math.min((wMax - mi - 2) / plano.ancho, (hMax - ab - 4) / plano.alto);
+  const w = plano.ancho * k, h = plano.alto * k;
+  const X = (x: number) => x0 + mi + x * k;
+  const Y = (y: number) => y0 + 3 + h - y * k;
+  doc.setLineDashPattern([], 0);
+  doc.setDrawColor(90, 60, 30);
+  doc.setFillColor(246, 239, 226);
+  doc.setLineWidth(0.3);
+  doc.rect(X(0), Y(plano.alto), w, h, "FD");
+  const vertical = plano.ejeY === "desde abajo";
+  const desdeFrente = plano.ejeY.startsWith("desde el borde frontal");
+  doc.setDrawColor(11, 140, 110);
+  doc.setLineWidth(1);
+  if (vertical) doc.line(X(0), Y(0), X(0), Y(plano.alto));
+  if (desdeFrente) doc.line(X(0), Y(0), X(plano.ancho), Y(0));
+  // guías punteadas
+  doc.setDrawColor(150, 160, 175);
+  doc.setLineWidth(0.12);
+  doc.setLineDashPattern([0.8, 0.8], 0);
+  for (const p of plano.perforaciones) {
+    doc.line(X(p.x), Y(p.y), X(p.x), Y(0) + 1.5);
+    doc.line(X(p.x), Y(p.y), X(0) - 1.5, Y(p.y));
+  }
+  doc.setLineDashPattern([], 0);
+  for (const p of plano.perforaciones) {
+    const t = HERRAMIENTAS[p.tipo];
+    const c = hexRgb(t.color);
+    doc.setDrawColor(...c);
+    doc.setFillColor(...c);
+    if (p.tipo === "tarugo_canto") {
+      const l = Math.max(25 * k, 1.5);
+      const dx = p.canto === "izq" ? 1 : p.canto === "der" ? -1 : 0;
+      const dy = p.canto === "abajo" ? -1 : p.canto === "arriba" ? 1 : 0;
+      doc.setLineWidth(Math.max(8 * k, 0.7));
+      doc.line(X(p.x), Y(p.y), X(p.x) + dx * l, Y(p.y) + dy * l);
+    } else if (p.tipo === "cazoleta") {
+      doc.setLineWidth(0.4);
+      doc.circle(X(p.x), Y(p.y), Math.max(17.5 * k, 1.2), "S");
+    } else doc.circle(X(p.x), Y(p.y), Math.max((t.diametro / 2) * k, 0.6), "F");
+  }
+  // cotas en dos filas
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(5.5);
+  doc.setTextColor(11, 31, 58);
+  const filas = (lista: number[], min: number) => {
+    const ult = [-1e9, -1e9, -1e9];
+    return lista.map((v) => {
+      let f = ult.findIndex((u) => v * k - u >= min);
+      if (f < 0) f = 0;
+      ult[f] = v * k;
+      return { v, f };
+    });
+  };
+  const xs = [...new Set(plano.perforaciones.map((p) => Math.round(p.x)))].sort((a, b) => a - b);
+  const ys = [...new Set(plano.perforaciones.map((p) => Math.round(p.y)))].sort((a, b) => a - b);
+  filas(xs, 5.5).forEach(({ v, f }) => doc.text(String(v), X(v), Y(0) + 4 + f * 2.6, { align: "center" }));
+  filas(ys, 2.2).forEach(({ v, f }) => doc.text(String(v), X(0) - 1.8 - f * 5, Y(v) + 0.8, { align: "right" }));
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...GRIS);
+  doc.text(`${vertical ? "<- FRENTE · " : desdeFrente ? "FRENTE (canto) · " : ""}${Math.round(plano.ancho)} mm`, X(plano.ancho / 2), Y(0) + 9.5, { align: "center" });
+  doc.text(`${Math.round(plano.alto)} mm`, X(plano.ancho), Y(plano.alto) - 1, { align: "right" });
+}
 
 const ACENTO: [number, number, number] = [11, 31, 58];
 const MENTA: [number, number, number] = [0, 217, 163];
@@ -392,7 +461,7 @@ function trabajosAnteriores(doc: jsPDF, trabajos: { url: string; titulo: string 
 }
 
 /** Planos de fabricación: por mueble, vistas con cotas, despiece y pasos de armado. */
-export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente) {
+export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, cfg?: Configuracion) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let primera = true;
   r.muebles.forEach((m, idx) => {
@@ -468,6 +537,7 @@ export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: Da
       doc.setTextColor(...GRIS);
       doc.text(herr, 14, y + 7);
     }
+    if (cfg) paginasPerforacion(doc, m, idx, cfg, taller, cliente);
   });
   pies(doc);
   return doc;
@@ -488,4 +558,60 @@ export async function compartirPdf(doc: jsPDF, nombre: string) {
     }
   }
   doc.save(nombre);
+}
+
+/** Páginas de taladrado de un mueble: herramientas y cada pieza con sus perforaciones acotadas. */
+function paginasPerforacion(doc: jsPDF, m: ResultadoProyecto["muebles"][number], idx: number, cfg: Configuracion, taller: DatosTaller, cliente: DatosCliente) {
+  const planos = perforaciones(m.resultado, cfg, Number(m.item.valores.fondo ?? 500));
+  if (!planos.length) return;
+  doc.addPage();
+  let y = encabezado(doc, `Perforaciones ${idx + 1}: ${m.item.nombre}`, taller, cliente);
+  const W = doc.internal.pageSize.getWidth();
+  autoTable(doc, {
+    startY: y,
+    head: [["", "Para qué", "Herramienta", "Ø", "Profundidad", "Cant."]],
+    body: herramientasUsadas(planos).map((h) => ["", h.nombre, h.herramienta, `${h.diametro} mm`, h.profundidad, String(h.cantidad * m.item.cantidad)]),
+    styles: { fontSize: 7.5, cellPadding: 1.2 },
+    headStyles: { fillColor: ACENTO },
+    columnStyles: { 0: { cellWidth: 5 } },
+    margin: { left: 14, right: 14 },
+    didDrawCell: (d) => {
+      if (d.section !== "body" || d.column.index !== 0) return;
+      const h = herramientasUsadas(planos)[d.row.index];
+      doc.setFillColor(...hexRgb(h.color));
+      doc.circle(d.cell.x + 2.5, d.cell.y + d.cell.height / 2, 1.3, "F");
+    },
+  });
+  // @ts-expect-error lastAutoTable lo agrega el plugin
+  y = doc.lastAutoTable.finalY + 4;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRIS);
+  doc.text("Cotas en mm. Las verticales se dibujan por la cara indicada, con el borde frontal (verde) a la izquierda. Las piezas acostadas, con el frente abajo. Las barras naranjas son tarugos en el canto.", 14, y, { maxWidth: W - 28 });
+  y += 8;
+  const colW = (W - 28 - 6) / 2;
+  const altoCelda = 92;
+  let col = 0;
+  for (const p of planos) {
+    if (y + altoCelda > 285) {
+      doc.addPage();
+      y = 16;
+      col = 0;
+    }
+    const x = 14 + col * (colW + 6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 30, 30);
+    const veces = p.veces * m.item.cantidad;
+    doc.text(`${p.titulo}${veces > 1 ? ` · ${veces} iguales` : ""}`, x, y, { maxWidth: colW });
+    dibujarPlanoPerf(doc, p, x, y + 2, colW, altoCelda - 18);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(154, 52, 18);
+    if (p.notas.length) doc.text(p.notas.join(" "), x, y + altoCelda - 8, { maxWidth: colW });
+    col++;
+    if (col === 2) {
+      col = 0;
+      y += altoCelda;
+    }
+  }
 }

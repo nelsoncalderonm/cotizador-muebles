@@ -1,7 +1,9 @@
 "use client";
 
 import { InputNumero } from "./InputNumero";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { perforaciones } from "@/lib/motor/perforaciones";
+import { PlanoPerforacion } from "./PlanoPerforacion";
 import { formatoDinero, mm, useEstado } from "@/lib/estado";
 import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
@@ -64,7 +66,7 @@ export function useAccionesPdf() {
     },
     planos: async () => {
       const { pdfPlanos, compartirPdf } = await import("@/lib/pdf");
-      await compartirPdf(pdfPlanos(resultado, taller, cliente), nombreArchivo("planos", cliente.proyecto));
+      await compartirPdf(pdfPlanos(resultado, taller, cliente, config), nombreArchivo("planos", cliente.proyecto));
     },
     /** Arma el PDF de la cotización sin compartirlo (para verlo o enviarlo). */
     docCotizacion: async (detallado: boolean, conTrabajos = true) => {
@@ -184,12 +186,14 @@ export function PanelLaminas() {
 }
 
 export function PanelArmado() {
-  const { resultado } = useEstado();
+  const { resultado, config } = useEstado();
   const pdf = useAccionesPdf();
   const [sel, setSel] = useState(0);
   const [paso, setPaso] = useState(0);
-  if (!resultado.muebles.length) return <Vacio />;
-  const m = resultado.muebles[Math.min(sel, resultado.muebles.length - 1)];
+  const [todas, setTodas] = useState(false);
+  const m = resultado.muebles[Math.min(sel, Math.max(0, resultado.muebles.length - 1))];
+  const planos = useMemo(() => (m ? perforaciones(m.resultado, config, Number(m.item.valores.fondo ?? 500)) : []), [m, config]);
+  if (!resultado.muebles.length || !m) return <Vacio />;
   const pasos = m.resultado.pasos;
   const p = Math.min(paso, pasos.length - 1);
   const conocidas = new Set(pasos.flatMap((x) => x.piezas));
@@ -239,6 +243,32 @@ export function PanelArmado() {
           </div>
         </div>
       </div>
+
+      {planos.length > 0 && (
+        <section className="perf-lista">
+          <div className="panel-cab">
+            <h3>{todas ? "Todas las perforaciones" : "Perforaciones de este paso"}</h3>
+            <button className="btn-texto" onClick={() => setTodas((t) => !t)}>
+              {todas ? "Solo este paso" : `Ver todas (${planos.length} piezas)`}
+            </button>
+          </div>
+          {(() => {
+            const delPaso = planos.filter((x) => resaltar.has(x.piezaId));
+            const lista = todas ? planos : delPaso;
+            if (!lista.length)
+              return <p className="hist-nota">Este paso no lleva perforaciones nuevas. Toca “Ver todas” para ver el taladrado de cada pieza.</p>;
+            return lista.map((x) => (
+              <div key={x.clave}>
+                <h4>
+                  {x.titulo}
+                  {x.veces * m.item.cantidad > 1 ? ` · ${x.veces * m.item.cantidad} iguales` : ""}
+                </h4>
+                <PlanoPerforacion plano={x} />
+              </div>
+            ));
+          })()}
+        </section>
+      )}
     </div>
   );
 }
