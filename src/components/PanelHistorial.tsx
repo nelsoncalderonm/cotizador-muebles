@@ -27,7 +27,7 @@ export function mensajeSeguimiento(c: Cotizacion, taller: string) {
 
 export function PanelHistorial({ irAlCotizador }: { irAlCotizador: () => void }) {
   const { activas, lista, cargando, nuevasVistas, cambiarEstado, borrar, marcarVistas, recargar } = useCotizaciones();
-  const { items, reemplazar, taller } = useEstado();
+  const { taller, nuevoProyecto } = useEstado();
   const [filtro, setFiltro] = useState<Filtro>("todas");
   // lo que estaba "nuevo" al entrar se resalta mientras el carpintero está aquí
   const [resaltar] = useState(() => new Set(nuevasVistas.map((c) => c.id)));
@@ -57,8 +57,8 @@ export function PanelHistorial({ irAlCotizador }: { irAlCotizador: () => void })
 
   function cargar(c: Cotizacion) {
     if (!c.datos?.items?.length) return;
-    if (items.length && !confirm("¿Cargar esta cotización en el cotizador? Se reemplazan los muebles que tienes ahora.")) return;
-    reemplazar({ items: c.datos.items, cliente: { ...c.datos.cliente, mensaje: "" } });
+    // se abre como un proyecto nuevo; el que estaba abierto queda guardado en Proyectos
+    nuevoProyecto({ items: c.datos.items, cliente: { ...c.datos.cliente, mensaje: "" } });
     irAlCotizador();
   }
 

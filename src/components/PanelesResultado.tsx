@@ -443,6 +443,12 @@ function HojaCotizacion({ imagenes, sin3d, logo, numero }: { imagenes: Record<st
           </div>
         </div>
       ))}
+      {resultado.transporte > 0 && (
+        <div className="hoja-linea">
+          <span>Transporte / envío</span>
+          <span>{$(resultado.transporte)}</span>
+        </div>
+      )}
       <div className="hoja-total">
         <span>TOTAL</span>
         <b>{$(resultado.total)}</b>
@@ -630,6 +636,11 @@ export function PanelCotizar() {
           </label>
         </div>
         <label className="campo">
+          <span>Transporte o envío</span>
+          <InputNumero valor={cliente.transporte} onCambio={(n) => setCliente({ ...cliente, transporte: n })} vacioSiCero placeholder="0 = no se cobra aparte" />
+          <small>Se suma al total tal cual, sin utilidad, y sale como línea aparte en el PDF.</small>
+        </label>
+        <label className="campo">
           <span>Notas para el cliente</span>
           <textarea rows={2} value={cliente.notas} placeholder="Incluye instalación y transporte." onChange={(e) => setCliente({ ...cliente, notas: e.target.value })} />
         </label>
@@ -745,6 +756,12 @@ export function PanelCotizar() {
             <span>Utilidad ({precios.margenPorcentaje} %)</span>
             <span className="num">{$(resultado.utilidad)}</span>
           </div>
+          {resultado.transporte > 0 && (
+            <div className="fila">
+              <span>Transporte / envío (sin utilidad)</span>
+              <span className="num">{$(resultado.transporte)}</span>
+            </div>
+          )}
           {resultado.impuesto > 0 && (
             <div className="fila">
               <span>Impuesto ({precios.impuestoPorcentaje} %)</span>

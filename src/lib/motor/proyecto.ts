@@ -1,6 +1,7 @@
 // Cálculo completo de un proyecto: varios muebles → lista de cortes, láminas optimizadas, herrajes y cotización.
 
 import { buscarMueble } from "./catalogo";
+import { ACABADOS_DEFECTO, acabado } from "../acabados";
 import { optimizar, type Lamina, type PiezaACortar } from "./optimizador";
 import type { ClaveMaterial, Configuracion, Herraje, Pieza, ResultadoMueble, ValoresParametros } from "./tipos";
 
@@ -40,6 +41,8 @@ export interface FilaCorte {
   cantidad: number;
   cantos: Pieza["cantos"];
   nota?: string;
+  /** El material tiene veta: el largo va en el sentido de la veta (vertical en el mueble) y la pieza no se rota. */
+  veta?: boolean;
 }
 
 export interface ResumenMaterial {
@@ -48,6 +51,36 @@ export interface ResumenMaterial {
   laminas: Lamina[];
   noCaben: PiezaACortar[];
   areaPiezas: number; // m²
+  /** Tablero con veta (madera): las piezas van con la veta vertical y no se rotan. */
+  veta: boolean;
+}
+
+/**
+ * Qué medida de la pieza queda vertical en el mueble armado (o de adelante hacia atrás si la pieza va acostada),
+ * para que en tableros con veta todas las piezas queden con la veta en el mismo sentido: perpendicular al piso.
+ */
+export function medidaVertical(res: ResultadoMueble, p: Pieza, espesor: number): "largo" | "ancho" | null {
+  if (/_(costado|contra)$/.test(p.id)) return "ancho"; // costados y contras de cajón: su alto es el ancho
+  const propios = res.vista.rects.filter((x) => x.piezaId === p.id);
+  const r = propios.find((x) => x.tipo !== "detalle") ?? propios[0];
+  if (!r) return null;
+  const cerca = (a: number, b: number) => Math.abs(a - b);
+  if (r.h <= espesor * 1.6) {
+    // pieza acostada (piso, techo, entrepaño): la veta va de adelante hacia atrás, la medida que no es el ancho del frente
+    return cerca(p.largo, r.w) < cerca(p.ancho, r.w) ? "ancho" : "largo";
+  }
+  return cerca(p.largo, r.h) <= cerca(p.ancho, r.h) ? "largo" : "ancho";
+}
+
+/** Tableros con veta: los marcados en la configuración y los que el carpintero eligió en madera en el 3D. */
+function materialesConVeta(items: ItemProyecto[], cfg: Configuracion) {
+  const conVeta = new Set<ClaveMaterial>((Object.keys(cfg.materiales) as ClaveMaterial[]).filter((k) => cfg.materiales[k].veta));
+  for (const it of items) {
+    const a = it.acabados ?? ACABADOS_DEFECTO;
+    if (acabado(a.cuerpo).veta) conVeta.add("cuerpo");
+    if (acabado(a.frente).veta) conVeta.add("frente");
+  }
+  return conVeta;
 }
 
 export interface LineaCotizacion {
@@ -70,6 +103,8 @@ export interface ResultadoProyecto {
   otrosCostos: number;
   costoTotal: number;
   utilidad: number;
+  /** Transporte o envío: se cobra tal cual, sin utilidad encima. */
+  transporte: number;
   subtotal: number;
   impuesto: number;
   total: number;
@@ -93,13 +128,14 @@ export const textoCantos = (c: Pieza["cantos"]) => {
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
-export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, precios: Precios): ResultadoProyecto {
+export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, precios: Precios, transporte = 0): ResultadoProyecto {
   const muebles: ResultadoProyecto["muebles"] = [];
   const cortes: FilaCorte[] = [];
   const herrajes = new Map<string, Herraje>();
   const advertencias: string[] = [];
   let mmCanto = 0;
   const ec = cfg.espesorCanto;
+  const conVeta = materialesConVeta(items, cfg);
 
   items.forEach((item, idx) => {
     const def = buscarMueble(item.muebleId);
@@ -107,7 +143,13 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
     const res = def.generar(item.valores, cfg);
     muebles.push({ item, nombreMueble: def.nombre, resultado: res });
     res.advertencias.forEach((a) => advertencias.push(`${item.nombre}: ${a}`));
-    res.piezas.forEach((p, j) => {
+    res.piezas.forEach((p0, j) => {
+      const veta = conVeta.has(p0.material);
+      // con veta, el largo de corte es la medida vertical: se gira la pieza (y sus cantos) si hace falta
+      const girar = veta && medidaVertical(res, p0, cfg.materiales[p0.material].espesor) === "ancho";
+      const p = girar
+        ? { ...p0, largo: p0.ancho, ancho: p0.largo, cantos: { largo1: p0.cantos.ancho1, largo2: p0.cantos.ancho2, ancho1: p0.cantos.largo1, ancho2: p0.cantos.largo2 } }
+        : p0;
       const cant = p.cantidad * item.cantidad;
       const descL = (p.cantos.ancho1 ? ec : 0) + (p.cantos.ancho2 ? ec : 0);
       const descA = (p.cantos.largo1 ? ec : 0) + (p.cantos.largo2 ? ec : 0);
@@ -123,6 +165,7 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
         cantidad: cant,
         cantos: p.cantos,
         nota: p.nota,
+        veta,
       });
       mmCanto += cant * ((p.cantos.largo1 ? p.largo : 0) + (p.cantos.largo2 ? p.largo : 0) + (p.cantos.ancho1 ? p.ancho : 0) + (p.cantos.ancho2 ? p.ancho : 0));
     });
@@ -149,10 +192,10 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
       anchoLamina: m.anchoLamina,
       sierra: cfg.sierra,
       refilado: cfg.refilado,
-      permitirRotar: !m.veta,
+      permitirRotar: !conVeta.has(clave),
     });
     noCaben.forEach((p) => advertencias.push(`La pieza ${p.ref} (${p.nombre} ${p.largo}×${p.ancho}) no cabe en la lámina de ${m.nombre}.`));
-    return { clave, nombre: m.nombre, laminas, noCaben, areaPiezas: area };
+    return { clave, nombre: m.nombre, laminas, noCaben, areaPiezas: area, veta: conVeta.has(clave) };
   });
 
   // Fusionar materiales iguales (si cuerpo y frente son el mismo tablero, se podrían juntar; se mantienen separados por color)
@@ -185,7 +228,8 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
   const otrosCostos = precios.otrosCostos;
   const costoTotal = subtotalMateriales + manoObra + otrosCostos;
   const utilidad = (costoTotal * precios.margenPorcentaje) / 100;
-  const subtotal = costoTotal + utilidad;
+  const flete = items.length ? Math.max(0, transporte || 0) : 0;
+  const subtotal = costoTotal + utilidad + flete;
   const impuesto = (subtotal * precios.impuestoPorcentaje) / 100;
 
   return {
@@ -200,6 +244,7 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
     otrosCostos,
     costoTotal,
     utilidad,
+    transporte: flete,
     subtotal,
     impuesto,
     total: subtotal + impuesto,

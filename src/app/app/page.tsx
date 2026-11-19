@@ -12,6 +12,7 @@ import { ProveedorCotizaciones, useCotizaciones } from "@/lib/cotizaciones";
 import { SincronizarNube } from "@/lib/nube";
 import { AvisoVistas, PanelHistorial } from "@/components/PanelHistorial";
 import { PanelClientes } from "@/components/PanelClientes";
+import { PanelProyectos } from "@/components/PanelProyectos";
 
 const PESTANAS = [
   { id: "disenar", etiqueta: "Diseñar", icono: "M4 20h16M6 16V8l6-4 6 4v8M10 16v-4h4v4" },
@@ -21,11 +22,11 @@ const PESTANAS = [
   { id: "cotizar", etiqueta: "Cotizar", icono: "M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4" },
 ] as const;
 
-type Id = (typeof PESTANAS)[number]["id"] | "precios" | "historial" | "clientes";
-const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios", "historial", "clientes"];
+type Id = (typeof PESTANAS)[number]["id"] | "precios" | "historial" | "clientes" | "proyectos";
+const IDS: Id[] = [...PESTANAS.map((p) => p.id), "precios", "historial", "clientes", "proyectos"];
 
 function App() {
-  const { listo, resultado, precios, items, nuevoProyecto, configurado } = useEstado();
+  const { listo, resultado, precios, items, cliente, configurado } = useEstado();
   const { activas, nuevasVistas, pendientesHoy } = useCotizaciones();
   const [tab, setTabEstado] = useState<Id>("disenar");
   const enClientes = tab === "clientes" || tab === "historial";
@@ -60,16 +61,9 @@ function App() {
           <h1 className="solo-lector">INNER Muebles</h1>
         </div>
         <div className="barra-acciones">
-          {items.length > 0 && (
-            <button
-              className="btn-icono"
-              onClick={() => {
-                if (confirm("¿Empezar un proyecto nuevo? Se borran los muebles actuales.")) nuevoProyecto();
-              }}
-            >
-              Nuevo
-            </button>
-          )}
+          <button className={`btn-icono${tab === "proyectos" ? " activo" : ""}`} aria-pressed={tab === "proyectos"} onClick={() => setTab(tab === "proyectos" ? "disenar" : "proyectos")}>
+            Proyectos
+          </button>
           {activas && (
             <button className={`btn-icono${enClientes ? " activo" : ""}`} aria-pressed={enClientes} onClick={() => setTab(enClientes ? "disenar" : "clientes")}>
               Clientes
@@ -97,6 +91,15 @@ function App() {
         ))}
       </nav>
 
+      {PESTANAS.some((p) => p.id === tab) && (items.length > 0 || cliente.proyecto || cliente.cliente) && (
+        <button className="proy-actual" onClick={() => setTab("proyectos")}>
+          <span>Proyecto</span>
+          <b>{cliente.proyecto || "Sin nombre"}</b>
+          {cliente.cliente && <small>· {cliente.cliente}</small>}
+          <i aria-hidden>Cambiar ›</i>
+        </button>
+      )}
+
       <main className="contenido">
         {tab === "disenar" && <PanelDisenar />}
         {tab === "cortes" && <PanelCortes />}
@@ -104,6 +107,7 @@ function App() {
         {tab === "armado" && <PanelArmado />}
         {tab === "cotizar" && <PanelCotizar />}
         {tab === "precios" && <PanelPrecios />}
+        {tab === "proyectos" && <PanelProyectos irADisenar={() => setTab("disenar")} />}
         {enClientes && (
           <div className="panel">
             <div className="cli-segmento" role="tablist">
@@ -119,7 +123,7 @@ function App() {
         )}
       </main>
 
-      {items.length > 0 && tab !== "cotizar" && !enClientes && (
+      {items.length > 0 && tab !== "cotizar" && !enClientes && tab !== "proyectos" && (
         <button className="total-flotante" onClick={() => setTab("cotizar")}>
           <span>
             {resultado.materiales.reduce((s, m) => s + m.laminas.length, 0)} láminas · {items.reduce((s, i) => s + i.cantidad, 0)} mueble(s)

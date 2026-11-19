@@ -183,11 +183,19 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
     const mat = cfg.materiales[m.clave];
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text(`${m.nombre} · lámina ${mat.largoLamina}×${mat.anchoLamina} · ${m.laminas.length} lámina(s)${mat.veta ? " · respetar veta" : ""}`, 14, y);
+    doc.text(`${m.nombre} · lámina ${mat.largoLamina}×${mat.anchoLamina} · ${m.laminas.length} lámina(s)${m.veta ? " · CON VETA" : ""}`, 14, y);
+    if (m.veta) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(150, 60, 0);
+      doc.text("Veta: el LARGO de cada pieza va en el sentido de la veta (largo de la lámina). No rotar piezas: así todas quedan con la veta vertical en el mueble.", 14, y + 5, { maxWidth: doc.internal.pageSize.getWidth() - 28 });
+      doc.setTextColor(30, 30, 30);
+      y += 9;
+    }
     doc.setFont("helvetica", "normal");
     autoTable(doc, {
       startY: y + 2,
-      head: [["Código", "Pieza", "Mueble", "Largo", "Ancho", "Cant.", "Canto"]],
+      head: [["Código", "Pieza", "Mueble", m.veta ? "Largo (veta)" : "Largo", "Ancho", "Cant.", "Canto"]],
       body: filas.map((f) => [f.codigo, f.pieza, f.mueble, mm(f.largoCorte), mm(f.anchoCorte), String(f.cantidad), textoCantos(f.cantos)]),
       styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: ACENTO },
@@ -230,7 +238,7 @@ export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: Da
   let y = encabezado(doc, "Cotización", taller, cliente, propias.logo, numeroCotizacion());
   const $ = (n: number) => formatoDinero(n, precios);
   const W = doc.internal.pageSize.getWidth();
-  const factor = r.costoTotal > 0 ? r.subtotal / r.costoTotal : 1;
+  const factor = r.costoTotal > 0 ? (r.subtotal - r.transporte) / r.costoTotal : 1;
 
   for (const m of r.muebles) {
     if (y > 215) {
@@ -277,6 +285,7 @@ export function pdfCotizacion(r: ResultadoProyecto, precios: Precios, taller: Da
   }
   const filas: [string, string][] = [];
   if (detallado) filas.push(["Materiales y herrajes", $(r.subtotalMateriales * factor)], ["Fabricación e instalación", $((r.manoObra + r.otrosCostos) * factor)]);
+  if (r.transporte > 0) filas.push(["Muebles", $(r.subtotal - r.transporte)], ["Transporte / envío", $(r.transporte)]);
   filas.push(["Subtotal", $(r.subtotal)]);
   if (precios.impuestoPorcentaje > 0) filas.push([`Impuesto (${precios.impuestoPorcentaje} %)`, $(r.impuesto)]);
   doc.setFontSize(10);

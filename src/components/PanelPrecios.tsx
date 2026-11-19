@@ -231,7 +231,7 @@ export function PanelPrecios() {
         <div className="grid-campos">
           <Num etiqueta="Mano de obra (% sobre materiales)" valor={precios.manoObraPorcentaje} onCambio={(n) => setPrecios({ ...precios, manoObraPorcentaje: n })} sufijo="%" />
           <Num etiqueta="Utilidad (% sobre costo)" valor={precios.margenPorcentaje} onCambio={(n) => setPrecios({ ...precios, margenPorcentaje: n })} sufijo="%" />
-          <Num etiqueta="Otros costos fijos (transporte, instalación)" valor={precios.otrosCostos} onCambio={(n) => setPrecios({ ...precios, otrosCostos: n })} sufijo={precios.simbolo} dinero />
+          <Num etiqueta="Otros costos fijos por proyecto (instalación…)" valor={precios.otrosCostos} onCambio={(n) => setPrecios({ ...precios, otrosCostos: n })} sufijo={precios.simbolo} dinero />
           <Num etiqueta="Impuesto" valor={precios.impuestoPorcentaje} onCambio={(n) => setPrecios({ ...precios, impuestoPorcentaje: n })} sufijo="%" />
         </div>
       </details>

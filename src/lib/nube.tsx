@@ -55,8 +55,8 @@ interface Remoto {
 export function SincronizarNube() {
   const { correo } = useCuenta();
   const estado = useEstado();
-  const { items, config, precios, cliente, taller, configurado, listo, reemplazar } = estado;
-  const datos = { items, config, precios, cliente, taller, configurado };
+  const { items, config, precios, cliente, taller, configurado, proyectos, proyectoId, listo, reemplazar } = estado;
+  const datos = { items, config, precios, cliente, taller, configurado, proyectos, proyectoId };
   const datosRef = useRef(datos);
   datosRef.current = datos;
   const reemplazarRef = useRef(reemplazar);
@@ -137,7 +137,7 @@ export function SincronizarNube() {
     }
     programar("estado");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activo, items, config, precios, cliente, taller, configurado]);
+  }, [activo, items, config, precios, cliente, taller, configurado, proyectos, proyectoId]);
 
   // Cambios del logo o las fotos de trabajos hechos aquí
   useEffect(() => {

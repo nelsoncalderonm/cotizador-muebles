@@ -436,7 +436,7 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
         geo = new THREE.CylinderGeometry((b.h / 2) * MM, (b.h / 2) * MM, b.w * MM, 20);
         geo.rotateZ(Math.PI / 2);
       } else if (b.piezaId === "jaladera") geo = geoJaladera(b.w * MM, b.h * MM, b.d * MM);
-      else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM, (n++ * 0.173) % 1, b.movil?.clase === "puerta" ? false : undefined); // en las puertas la veta va vertical
+      else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM, (n++ * 0.173) % 1, false); // la veta siempre perpendicular al piso (en piezas acostadas, de adelante hacia atrás), como en la lista de cortes
       const metal = b.piezaId === "pata" || b.piezaId === "rodachina" ? matPata() : b.piezaId === "jaladera" ? matMetal() : matHerraje();
       const mat = b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? metal : b.tipo === "luz" ? matLuz() : matCuerpo();
       const m = new THREE.Mesh(geo, mat);

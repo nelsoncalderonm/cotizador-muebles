@@ -30,6 +30,7 @@ export function condiciones(r: ResultadoProyecto, precios: Precios, cliente: Dat
   const lineas: string[] = [];
   if (pct > 0 && pct < 100) lineas.push(`Anticipo del ${pct} % para empezar: ${$(anticipo)}. Saldo de ${$(saldo)} contra entrega.`);
   else if (pct === 100) lineas.push(`Pago del 100 % para empezar: ${$(r.total)}.`);
+  if (r.transporte > 0) lineas.push(`Incluye transporte / envío por ${$(r.transporte)}.`);
   if (cliente.entregaDias > 0) lineas.push(`Fabricación e instalación en ${cliente.entregaDias} días hábiles después del anticipo.`);
   lineas.push(`Precio válido hasta el ${validaHasta(cliente)}.`);
   return lineas;
@@ -47,6 +48,7 @@ export function mensajeCliente(r: ResultadoProyecto, precios: Precios, cliente: 
     ...r.muebles.map((m) => `• ${m.item.cantidad} × ${m.item.nombre} (${mm(m.resultado.vista.ancho)} × ${mm(m.resultado.vista.alto)} mm)`),
     "",
     `*Total: ${$(r.total)}*`,
+    r.transporte > 0 ? `Incluye transporte: ${$(r.transporte)}.` : "",
     pct > 0 && pct < 100 ? `Para empezar: anticipo del ${pct} % (${$(anticipo)}).` : "",
     cliente.entregaDias > 0 ? `Entrega en ${cliente.entregaDias} días hábiles.` : "",
     `Precio válido hasta el ${validaHasta(cliente)}.`,

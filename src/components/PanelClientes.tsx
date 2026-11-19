@@ -2,7 +2,7 @@
 // Clientes: a quién le toca escribir hoy, notas, recordatorios y sus cotizaciones.
 
 import { useMemo, useState } from "react";
-import { formatoDinero, useEstado, type DatosCliente } from "@/lib/estado";
+import { formatoDinero, proyectosAlDia, useEstado } from "@/lib/estado";
 import { claveCliente, hace, hoyISO, useCotizaciones, type Cliente, type Cotizacion } from "@/lib/cotizaciones";
 import { mensajeSeguimiento } from "./PanelHistorial";
 
@@ -44,7 +44,9 @@ function mensajeCliente(f: Ficha, taller: string) {
 
 export function PanelClientes({ irAlCotizador }: { irAlCotizador: () => void }) {
   const { activas, clientes, lista, guardarCliente, borrarCliente, cargando } = useCotizaciones();
-  const { items, reemplazar, taller } = useEstado();
+  const estado = useEstado();
+  const { taller, nuevoProyecto, proyectoId, abrirProyecto } = estado;
+  const todosProyectos = proyectosAlDia(estado);
   const [busca, setBusca] = useState("");
   const [abierto, setAbierto] = useState<string | null>(null);
   const [nuevo, setNuevo] = useState(false);
@@ -97,8 +99,8 @@ export function PanelClientes({ irAlCotizador }: { irAlCotizador: () => void }) 
     .sort((a, b) => (b.cotizaciones[0]?.creada ?? b.creado).localeCompare(a.cotizaciones[0]?.creada ?? a.creado));
 
   function nuevaCotizacion(f: Ficha) {
-    if (items.length && !confirm(`¿Empezar una cotización nueva para ${f.nombre || "este cliente"}? Se quitan los muebles que tienes ahora.`)) return;
-    reemplazar({ items: [], cliente: { cliente: f.nombre ?? "", telefono: f.telefono ?? "" } as DatosCliente });
+    // el proyecto que estaba abierto queda guardado en Proyectos
+    nuevoProyecto({ cliente: { cliente: f.nombre ?? "", telefono: f.telefono ?? "" } });
     irAlCotizador();
   }
 
@@ -196,9 +198,38 @@ export function PanelClientes({ irAlCotizador }: { irAlCotizador: () => void }) 
               </div>
             )}
 
+            {(() => {
+              const suyos = todosProyectos.filter((p) => claveCliente(p.cliente.telefono, p.cliente.cliente) === f.clave);
+              if (!suyos.length) return null;
+              return (
+                <div className="cli-bloque">
+                  <span>Proyectos</span>
+                  <ul className="cli-cots">
+                    {suyos.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          className="cli-proy"
+                          onClick={() => {
+                            abrirProyecto(p.id);
+                            irAlCotizador();
+                          }}
+                        >
+                          <b>{p.cliente.proyecto || "Proyecto sin nombre"}</b>
+                          <small>
+                            {p.items.reduce((s, i) => s + i.cantidad, 0)} mueble(s){p.id === proyectoId ? " · abierto ahora" : ` · editado ${hace(p.actualizado)}`}
+                          </small>
+                        </button>
+                        <span className="cli-abrir">Abrir ›</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
+
             <div className="cli-acciones">
               <button className="btn-sec" onClick={() => nuevaCotizacion(f)}>
-                Nueva cotización para {(f.nombre || "este cliente").split(" ")[0]}
+                Nuevo proyecto para {(f.nombre || "este cliente").split(" ")[0]}
               </button>
               {clientes.some((c) => c.clave === f.clave) && (
                 <button
