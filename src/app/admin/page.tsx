@@ -11,6 +11,9 @@ interface Cliente {
   correo: string;
   nombre: string | null;
   telefono: string | null;
+  /** País del taller (id de PAISES), para armar el link de WhatsApp. */
+  pais: string | null;
+  taller: string | null;
   estado: string | null;
   plan: string | null;
   medio_pago: string | null;
@@ -45,6 +48,18 @@ const MEDIOS: Record<string, string> = {
   WALLET: "Billetera",
 };
 const medio = (m: string | null) => (m ? MEDIOS[m.toUpperCase()] ?? m : "Sin dato");
+
+// Indicativo por país del taller; si el número ya trae indicativo (más de 10 dígitos) se deja igual.
+const INDICATIVOS: Record<string, string> = {
+  co: "57", mx: "52", pe: "51", cl: "56", ar: "54", ec: "593", bo: "591", py: "595", uy: "598",
+  ve: "58", gt: "502", cr: "506", do: "1", hn: "504", sv: "503", pa: "507",
+};
+function linkWhatsapp(tel: string, pais: string | null) {
+  let d = tel.replace(/\D/g, "").replace(/^0+/, "");
+  const ind = INDICATIVOS[pais ?? "co"];
+  if (ind && d.length <= 10 && !d.startsWith(ind)) d = ind + d;
+  return `https://wa.me/${d}`;
+}
 
 const fecha = (f: string | null) => (f ? new Date(f).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) : "—");
 function hace(f: string | null) {
@@ -236,7 +251,14 @@ function Panel() {
                   <span className="adm-cliente">
                     <b>{c.nombre || c.correo}</b>
                     {c.nombre && <small>{c.correo}</small>}
-                    {c.telefono && <small>{c.telefono}</small>}
+                    {c.taller && <small>{c.taller}</small>}
+                    {c.telefono && (
+                      <small>
+                        <a href={linkWhatsapp(c.telefono, c.pais)} target="_blank" rel="noreferrer">
+                          WhatsApp {c.telefono}
+                        </a>
+                      </small>
+                    )}
                     <small>Desde {fecha(c.inicio ?? c.registrado)}</small>
                   </span>
                   <span data-t="Estado">

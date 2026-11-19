@@ -41,6 +41,8 @@ function Opciones<T extends string | number>({ valor, opciones, onCambio }: { va
 export function Onboarding() {
   const { config: cfgGuardada, precios: preGuardados, taller: tallerGuardado, terminarConfiguracion } = useEstado();
   const [paso, setPaso] = useState(-1); // -1 = bienvenida, PASOS.length = final
+  // "Saltar por ahora" igual pide el paso del taller (el WhatsApp es obligatorio) y termina ahí
+  const [rapido, setRapido] = useState(false);
   const [taller, setTaller] = useState<DatosTaller>({ ...tallerGuardado, pais: tallerGuardado.pais ?? "co" });
   const [config, setConfig] = useState<Configuracion>(cfgGuardada);
   const [precios, setPrecios] = useState<Precios>(preGuardados);
@@ -88,7 +90,8 @@ export function Onboarding() {
   const laminaActual = `${m.cuerpo.largoLamina}x${m.cuerpo.anchoLamina}`;
   const laminas = LAMINAS_COMUNES.some(([l, a]) => `${l}x${a}` === laminaActual) ? LAMINAS_COMUNES : [...LAMINAS_COMUNES, [m.cuerpo.largoLamina, m.cuerpo.anchoLamina] as [number, number]];
 
-  const terminar = () => terminarConfiguracion({ config, precios: preciosFinales, taller });
+  const terminar = () => terminarConfiguracion({ config, precios: preciosFinales, taller: { ...taller, telefono: taller.telefono.trim() } });
+  const faltaWhatsapp = taller.telefono.replace(/\D/g, "").length < 7;
 
   return (
     <div className="onb" role="dialog" aria-modal="true" aria-label="Configuración inicial">
@@ -132,8 +135,9 @@ export function Onboarding() {
               </label>
               <div className="grid-campos">
                 <label className="campo">
-                  <span>WhatsApp</span>
-                  <input type="tel" inputMode="tel" value={taller.telefono} placeholder="Ej. 300 123 4567" onChange={(e) => setTaller({ ...taller, telefono: e.target.value })} />
+                  <span>Tu WhatsApp</span>
+                  <input type="tel" inputMode="tel" required autoComplete="tel" value={taller.telefono} placeholder="Ej. 300 123 4567" onChange={(e) => setTaller({ ...taller, telefono: e.target.value })} />
+                  <small>Obligatorio. Sale en tus PDF y por ahí te ayudamos si te enredas.</small>
                 </label>
                 <label className="campo">
                   <span>Ciudad</span>
@@ -292,7 +296,13 @@ export function Onboarding() {
               <button className="btn" onClick={() => setPaso(0)}>
                 Empezar
               </button>
-              <button className="onb-saltar" onClick={() => terminarConfiguracion()}>
+              <button
+                className="onb-saltar"
+                onClick={() => {
+                  setRapido(true);
+                  setPaso(0);
+                }}
+              >
                 Saltar por ahora
               </button>
             </>
@@ -302,11 +312,22 @@ export function Onboarding() {
             </button>
           ) : (
             <div className="onb-nav">
-              <button className="btn btn-sec" onClick={() => setPaso(paso - 1)}>
+              <button
+                className="btn btn-sec"
+                onClick={() => {
+                  if (paso === 0) setRapido(false);
+                  setPaso(paso - 1);
+                }}
+              >
                 Atrás
               </button>
-              <button className="btn" onClick={() => setPaso(paso + 1)}>
-                {paso === PASOS.length - 1 ? "Terminar" : "Siguiente"}
+              <button
+                className="btn"
+                disabled={paso === 0 && faltaWhatsapp}
+                title={paso === 0 && faltaWhatsapp ? "Escribe tu WhatsApp para seguir" : undefined}
+                onClick={() => (paso === 0 && rapido ? terminar() : setPaso(paso + 1))}
+              >
+                {paso === 0 && rapido ? "Empezar" : paso === PASOS.length - 1 ? "Terminar" : "Siguiente"}
               </button>
             </div>
           )}

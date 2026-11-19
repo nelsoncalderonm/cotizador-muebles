@@ -101,7 +101,11 @@ begin
     select jsonb_agg(f order by f.orden desc nulls last)
     from (
       select
-        coalesce(s.correo, p.correo) as correo, s.nombre, s.telefono, s.estado, s.plan, s.medio_pago, s.moneda, s.valor, s.origen,
+        coalesce(s.correo, p.correo) as correo, s.nombre,
+        -- el teléfono de Hotmart si llegó; si no, el WhatsApp que puso en la configuración del taller
+        coalesce(nullif(trim(s.telefono), ''), nullif(trim(d.estado->'taller'->>'telefono'), '')) as telefono,
+        d.estado->'taller'->>'pais' as pais, nullif(trim(d.estado->'taller'->>'nombre'), '') as taller,
+        s.estado, s.plan, s.medio_pago, s.moneda, s.valor, s.origen,
         s.inicio, s.ultimo_pago, s.proximo_cobro, s.notas,
         p.creado as registrado, p.ultimo_uso, coalesce(p.segundos_uso, 0) as segundos_uso,
         coalesce((select sum(u.segundos) from inner_muebles.uso_diario u where u.usuario = p.id and u.dia > current_date - 7), 0) as segundos_7d,
@@ -109,6 +113,7 @@ begin
         coalesce(p.es_dueno, false) as es_dueno,
         coalesce(s.inicio, p.creado) as orden
       from inner_muebles.suscripciones s full outer join inner_muebles.perfiles p on p.correo = s.correo
+      left join inner_muebles.datos_usuario d on d.usuario = p.id
     ) f
   ), '[]'::jsonb);
 end $$;
