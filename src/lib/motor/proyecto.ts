@@ -35,6 +35,8 @@ export interface FilaCorte {
   mueble: string;
   pieza: string;
   material: ClaveMaterial;
+  /** Tablero físico del que sale (material + espesor + color), ver ResumenMaterial.id */
+  tablero: string;
   largoTerminado: number;
   anchoTerminado: number;
   largoCorte: number;
@@ -47,8 +49,15 @@ export interface FilaCorte {
 }
 
 export interface ResumenMaterial {
+  /** Tablero físico: el mismo color y espesor sale de la misma lámina aunque sea cuerpo, frente o interior. */
+  id: string;
   clave: ClaveMaterial;
+  color: string | null;
   nombre: string;
+  espesor: number;
+  largoLamina: number;
+  anchoLamina: number;
+  precioLamina: number;
   laminas: Lamina[];
   noCaben: PiezaACortar[];
   areaPiezas: number; // m²
@@ -73,15 +82,21 @@ export function medidaVertical(res: ResultadoMueble, p: Pieza, espesor: number):
   return cerca(p.largo, r.h) <= cerca(p.ancho, r.h) ? "largo" : "ancho";
 }
 
-/** Tableros con veta: los marcados en la configuración y los que el carpintero eligió en madera en el 3D. */
-function materialesConVeta(items: ItemProyecto[], cfg: Configuracion) {
-  const conVeta = new Set<ClaveMaterial>((Object.keys(cfg.materiales) as ClaveMaterial[]).filter((k) => cfg.materiales[k].veta));
-  for (const it of items) {
-    const a = it.acabados ?? ACABADOS_DEFECTO;
-    if (acabado(a.cuerpo).veta) conVeta.add("cuerpo");
-    if (acabado(a.frente).veta) conVeta.add("frente");
-  }
-  return conVeta;
+/** Color de melamina de una pieza según el mueble: cuerpo y frente toman su acabado; el interior siempre es blanco. */
+function colorPieza(clave: ClaveMaterial, item: ItemProyecto) {
+  const a = item.acabados ?? ACABADOS_DEFECTO;
+  return clave === "interior" ? "blanco" : clave === "frente" ? a.frente : clave === "cuerpo" ? a.cuerpo : null;
+}
+
+/** Tablero físico: por espesor, tamaño de lámina y color. El fondo (HDF) es uno solo. */
+function idTablero(clave: ClaveMaterial, color: string | null, cfg: Configuracion) {
+  const m = cfg.materiales[clave];
+  return color === null ? clave : `m${m.espesor}:${m.largoLamina}x${m.anchoLamina}:${color}`;
+}
+
+export function nombreColor(color: string) {
+  const a = acabado(color);
+  return a.nombre === "Otro color" ? `color ${color}` : a.nombre;
 }
 
 export interface LineaCotizacion {
@@ -136,7 +151,7 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
   const advertencias: string[] = [];
   let mmCanto = 0;
   const ec = cfg.espesorCanto;
-  const conVeta = materialesConVeta(items, cfg);
+  const tableros = new Map<string, { claves: Set<ClaveMaterial>; color: string | null; veta: boolean }>();
 
   items.forEach((item, idx) => {
     const def = buscarMueble(item.muebleId);
@@ -147,7 +162,13 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
     const interior = piezasInterior(res, item.muebleId, item.acabados);
     res.piezas.forEach((pOriginal, j) => {
       const p0: Pieza = esInterior(pOriginal, interior) ? { ...pOriginal, material: "interior" } : pOriginal;
-      const veta = conVeta.has(p0.material);
+      const color = colorPieza(p0.material, item);
+      const tablero = idTablero(p0.material, color, cfg);
+      const veta = cfg.materiales[p0.material].veta || (color !== null && Boolean(acabado(color).veta));
+      const tb = tableros.get(tablero) ?? { claves: new Set<ClaveMaterial>(), color, veta: false };
+      tb.claves.add(p0.material);
+      tb.veta ||= veta;
+      tableros.set(tablero, tb);
       // con veta, el largo de corte es la medida vertical: se gira la pieza (y sus cantos) si hace falta
       const girar = veta && medidaVertical(res, p0, cfg.materiales[p0.material].espesor) === "ancho";
       const p = girar
@@ -161,6 +182,7 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
         mueble: item.nombre,
         pieza: p.nombre,
         material: p.material,
+        tablero,
         largoTerminado: p.largo,
         anchoTerminado: p.ancho,
         largoCorte: r1(p.largo - descL),
@@ -179,27 +201,52 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
     });
   });
 
-  // Optimización por material
-  const materiales: ResumenMaterial[] = (Object.keys(cfg.materiales) as ClaveMaterial[]).map((clave) => {
-    const m = cfg.materiales[clave];
-    const lista: PiezaACortar[] = [];
-    let area = 0;
-    cortes
-      .filter((f) => f.material === clave)
-      .forEach((f) => {
-        for (let k = 0; k < f.cantidad; k++) lista.push({ ref: f.codigo, nombre: f.pieza, largo: f.largoCorte, ancho: f.anchoCorte });
-        area += (f.largoCorte * f.anchoCorte * f.cantidad) / 1e6;
+  // Optimización por tablero (color y espesor): piezas del mismo color salen de las mismas láminas
+  const orden: ClaveMaterial[] = ["cuerpo", "frente", "interior", "fondo"];
+  const materiales: ResumenMaterial[] = [...tableros.entries()]
+    .sort(([, a], [, b]) => orden.indexOf([...a.claves][0]) - orden.indexOf([...b.claves][0]))
+    .map(([id, tb]) => {
+      const claves = [...tb.claves].sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
+      const clave = claves[0];
+      const base = cfg.materiales[clave];
+      const precioBase = Math.max(...claves.map((k) => cfg.materiales[k].precioLamina));
+      const nombre =
+        tb.color === null
+          ? base.nombre
+          : tb.color === "blanco"
+            ? `Melamina blanca ${base.espesor} mm`
+            : `Melamina ${nombreColor(tb.color)} ${base.espesor} mm`;
+      const lista: PiezaACortar[] = [];
+      let area = 0;
+      cortes
+        .filter((f) => f.tablero === id)
+        .forEach((f) => {
+          for (let k = 0; k < f.cantidad; k++) lista.push({ ref: f.codigo, nombre: f.pieza, largo: f.largoCorte, ancho: f.anchoCorte });
+          area += (f.largoCorte * f.anchoCorte * f.cantidad) / 1e6;
+        });
+      const { laminas, noCaben } = optimizar(lista, {
+        largoLamina: base.largoLamina,
+        anchoLamina: base.anchoLamina,
+        sierra: cfg.sierra,
+        refilado: cfg.refilado,
+        permitirRotar: !tb.veta,
       });
-    const { laminas, noCaben } = optimizar(lista, {
-      largoLamina: m.largoLamina,
-      anchoLamina: m.anchoLamina,
-      sierra: cfg.sierra,
-      refilado: cfg.refilado,
-      permitirRotar: !conVeta.has(clave),
+      noCaben.forEach((p) => advertencias.push(`La pieza ${p.ref} (${p.nombre} ${p.largo}×${p.ancho}) no cabe en la lámina de ${nombre}.`));
+      return {
+        id,
+        clave,
+        color: tb.color,
+        nombre,
+        espesor: base.espesor,
+        largoLamina: base.largoLamina,
+        anchoLamina: base.anchoLamina,
+        precioLamina: cfg.preciosTablero?.[id] ?? precioBase,
+        laminas,
+        noCaben,
+        areaPiezas: area,
+        veta: tb.veta,
+      };
     });
-    noCaben.forEach((p) => advertencias.push(`La pieza ${p.ref} (${p.nombre} ${p.largo}×${p.ancho}) no cabe en la lámina de ${m.nombre}.`));
-    return { clave, nombre: m.nombre, laminas, noCaben, areaPiezas: area, veta: conVeta.has(clave) };
-  });
 
   // Fusionar materiales iguales (si cuerpo y frente son el mismo tablero, se podrían juntar; se mantienen separados por color)
   const metrosCanto = Math.ceil((mmCanto / 1000) * 1.1 * 10) / 10; // 10 % de desperdicio
@@ -207,10 +254,9 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
   const costos: LineaCotizacion[] = [];
   materiales.forEach((m) => {
     if (!m.laminas.length) return;
-    const mat = cfg.materiales[m.clave];
-    const u = mat.precioLamina;
+    const u = m.precioLamina;
     if (precios.cobroLaminas === "proporcional") {
-      const areaLamina = (mat.largoLamina * mat.anchoLamina) / 1e6;
+      const areaLamina = (m.largoLamina * m.anchoLamina) / 1e6;
       const cant = Math.min(m.laminas.length, Math.ceil(((m.areaPiezas / areaLamina) * (1 + precios.desperdicioPorcentaje / 100)) * 100) / 100);
       costos.push({ concepto: m.nombre, detalle: `Proporcional al uso (+${precios.desperdicioPorcentaje} % desperdicio)`, cantidad: cant, unitario: u, total: u * cant });
     } else costos.push({ concepto: m.nombre, detalle: "Lámina completa", cantidad: m.laminas.length, unitario: u, total: u * m.laminas.length });

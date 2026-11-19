@@ -7,7 +7,10 @@ import type { DatosCliente, DatosTaller } from "./estado";
 import { formatoDinero, mm } from "./estado";
 import { condiciones, numeroCotizacion } from "./cotizacion";
 import type { Lamina } from "./motor/optimizador";
-import { textoCantos, type Precios, type ResultadoProyecto } from "./motor/proyecto";
+import { nombreColor, textoCantos, type Precios, type ResultadoProyecto } from "./motor/proyecto";
+import { usaInteriorBlanco } from "./motor/interior";
+import { buscarMueble } from "./motor/catalogo";
+import { ACABADOS_DEFECTO, jaladera } from "./acabados";
 import type { Configuracion, ResultadoMueble } from "./motor/tipos";
 import { HERRAMIENTAS, herramientasUsadas, perforaciones, type PlanoPieza } from "./motor/perforaciones";
 
@@ -142,7 +145,7 @@ function pies(doc: jsPDF, taller?: DatosTaller) {
 
 /** Dibuja la vista frontal de un mueble dentro de un recuadro. */
 export function dibujarVista(doc: jsPDF, vista: ResultadoMueble["vista"], x: number, y: number, w: number, h: number, frentes: boolean, cotas = true) {
-  const pad = cotas ? 9 : 2;
+  const pad = cotas ? 13 : 2;
   const esc = Math.min((w - pad * 2) / vista.ancho, (h - pad * 2) / vista.alto);
   const ox = x + (w - vista.ancho * esc) / 2;
   const oy = y + (h - vista.alto * esc) / 2;
@@ -174,10 +177,11 @@ export function dibujarVista(doc: jsPDF, vista: ResultadoMueble["vista"], x: num
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(7.5);
     for (const c of vista.cotas) {
+      if (frentes && c.desplazamiento < 60) continue; // las cotas interiores van en la vista de estructura
       const dx = c.x2 - c.x1, dy = c.y2 - c.y1;
       const len = Math.hypot(dx, dy) || 1;
       const nx = -dy / len, ny = dx / len;
-      const d = 4 / esc;
+      const d = (c.desplazamiento >= 60 ? 8 : 3.5) / esc; // totales por fuera, interiores más cerca del mueble
       const a = { x: X(c.x1 + nx * d), y: Y(c.y1 + ny * d) };
       const b = { x: X(c.x2 + nx * d), y: Y(c.y2 + ny * d) };
       doc.line(X(c.x1 + nx * 1 / esc), Y(c.y1 + ny * 1 / esc), a.x + nx, a.y - ny);
@@ -256,21 +260,39 @@ function dibujarLamina(doc: jsPDF, lamina: Lamina, x: number, y: number, w: numb
     doc.setTextColor(30, 30, 30);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(fs);
-    const opts = vertical ? { angle: 90, align: "center" as const } : { align: "center" as const };
-    const dos = alto > fs * 0.85 && espacio > 14;
+    const opts = { align: "center" as const };
+    // alturas en mm (1 pt = 0,3528 mm): la medida va debajo del código solo si de verdad caben las dos líneas
+    const k = 0.3528, h1 = fs * k, h2 = fs * 0.8 * k;
+    const medida = `${mm(largo)}×${mm(ancho)}`;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(fs * 0.8);
+    const anchoMedida = doc.getTextWidth(medida);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(fs);
+    const anchoCodigo = doc.getTextWidth(p.ref);
+    const dos = alto >= (h1 + h2) * 1.15 + 0.8 && espacio > anchoMedida + 2;
+    const T = dos ? h1 + 0.4 + h2 : h1;
+    if (veta) {
+      // fondo blanco detrás del texto para que la veta no lo tape
+      const bw = Math.max(anchoCodigo, dos ? anchoMedida : 0) + 1.6, bh = T + 1;
+      doc.setFillColor(255, 255, 255);
+      if (vertical) doc.rect(cx - bh / 2, cy - bw / 2, bh, bw, "F");
+      else doc.rect(cx - bw / 2, cy - bh / 2, bw, bh, "F");
+    }
     if (vertical) {
-      doc.text(p.ref, cx + (dos ? -fs * 0.05 : fs * 0.12), cy, opts);
+      // jsPDF no centra bien el texto girado: se arranca abajo, a media longitud del texto
+      doc.text(p.ref, cx - T / 2 + h1 * 0.8, cy + anchoCodigo / 2, { angle: 90 });
       if (dos) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(fs * 0.8);
-        doc.text(`${mm(largo)}×${mm(ancho)}`, cx + fs * 0.35, cy, opts);
+        doc.text(medida, cx + T / 2 - h2 * 0.15, cy + anchoMedida / 2, { angle: 90 });
       }
     } else {
-      doc.text(p.ref, cx, cy + (dos ? -fs * 0.05 : fs * 0.12), opts);
+      doc.text(p.ref, cx, cy - T / 2 + h1 * 0.8, opts);
       if (dos) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(fs * 0.8);
-        doc.text(`${mm(largo)}×${mm(ancho)}`, cx, cy + fs * 0.35, opts);
+        doc.text(medida, cx, cy + T / 2 - h2 * 0.15, opts);
       }
     }
   }
@@ -292,9 +314,9 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
   );
   y += 12;
   for (const m of r.materiales) {
-    const filas = r.cortes.filter((f) => f.material === m.clave);
+    const filas = r.cortes.filter((f) => f.tablero === m.id);
     if (!filas.length) continue;
-    const mat = cfg.materiales[m.clave];
+    const mat = m;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.text(`${m.nombre} · lámina ${mat.largoLamina}×${mat.anchoLamina} · ${m.laminas.length} lámina(s)${m.veta ? " · CON VETA" : ""}`, 14, y);
@@ -506,17 +528,108 @@ function trabajosAnteriores(doc: jsPDF, trabajos: { url: string; titulo: string 
 }
 
 /** Planos de fabricación: por mueble, vistas con cotas, despiece y pasos de armado. */
-export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, cfg?: Configuracion, explotadas: Record<string, string> = {}) {
+/** Colores de un mueble en palabras, para el operario. */
+function textoColores(m: ResultadoProyecto["muebles"][number]) {
+  const a = m.item.acabados ?? ACABADOS_DEFECTO;
+  const partes = [`cuerpo ${nombreColor(a.cuerpo)}`, `frentes ${nombreColor(a.frente)}`];
+  if (usaInteriorBlanco(m.item.acabados)) partes.push("interior blanco");
+  partes.push(`jaladera ${jaladera(a.jaladera).nombre.toLowerCase()}`);
+  return partes.join(" · ");
+}
+
+/** Portada de la orden de producción: qué se fabrica, con qué tableros y quién hace cada etapa. */
+function portadaProduccion(doc: jsPDF, r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, logo?: string | null) {
+  const W = doc.internal.pageSize.getWidth();
+  let y = encabezado(doc, "Orden de producción", taller, cliente, logo);
+  if (cliente.entregaDias > 0) {
+    const f = new Date();
+    let d = cliente.entregaDias;
+    while (d > 0) {
+      f.setDate(f.getDate() + 1);
+      if (f.getDay() !== 0 && f.getDay() !== 6) d--;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(150, 60, 0);
+    doc.text(`Entrega: ${f.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })} (${cliente.entregaDias} días hábiles)`, 14, y);
+    y += 6;
+  }
+  const seccion = (t: string) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 30);
+    doc.text(t, 14, y);
+    y += 2;
+  };
+  const tabla = (head: string[], body: string[][], extra: Parameters<typeof autoTable>[1] = {}) => {
+    autoTable(doc, { startY: y, head: [head], body, styles: { fontSize: 8, cellPadding: 1.6 }, headStyles: { fillColor: ACENTO }, margin: { left: 14, right: 14 }, ...extra });
+    // @ts-expect-error lastAutoTable lo agrega el plugin
+    y = doc.lastAutoTable.finalY + 8;
+  };
+  seccion("Muebles a fabricar");
+  tabla(
+    ["Plano", "Mueble", "Medidas (ancho × alto × fondo)", "Cant.", "Colores"],
+    r.muebles.map((m, i) => [
+      String(i + 1),
+      m.item.nombre,
+      `${mm(m.resultado.vista.ancho)} × ${mm(m.resultado.vista.alto)} × ${mm(Number(m.item.valores.fondo ?? buscarMueble(m.item.muebleId)?.parametros.find((x) => x.clave === "fondo")?.defecto ?? 0))} mm`,
+      String(m.item.cantidad),
+      textoColores(m),
+    ]),
+    { columnStyles: { 0: { halign: "center", cellWidth: 12 }, 3: { halign: "center", cellWidth: 12 } } },
+  );
+  seccion("Tableros (llegan cortados y canteados del proveedor)");
+  tabla(
+    ["Tablero", "Láminas", "Piezas", "Veta"],
+    r.materiales
+      .filter((m) => m.laminas.length)
+      .map((m) => [m.nombre, String(m.laminas.length), String(r.cortes.filter((f) => f.tablero === m.id).reduce((s, f) => s + f.cantidad, 0)), m.veta ? "Sí: veta vertical en el mueble" : "-"]),
+  );
+  if (r.herrajes.length) {
+    seccion("Herrajes para todo el proyecto");
+    const h = r.herrajes.map((x) => `${mm(x.cantidad)} ${x.unidad}  ${x.nombre}`);
+    const mitad = Math.ceil(h.length / 2);
+    tabla(["Revisar antes de empezar", ""], h.slice(0, mitad).map((t, i) => [`[  ]  ${t}`, h[mitad + i] ? `[  ]  ${h[mitad + i]}` : ""]), { styles: { fontSize: 8, cellPadding: 1.3 } });
+  }
+  if (y > 215) {
+    doc.addPage();
+    y = 20;
+  }
+  seccion("Control de producción");
+  tabla(
+    ["Etapa", "Responsable", "Fecha", "Firma"],
+    [
+      ["1. Recibir tableros y revisar medidas y cantos", "", "", ""],
+      ["2. Perforar (bisagras, tarugos, soportes)", "", "", ""],
+      ["3. Armar cajas y cajones", "", "", ""],
+      ["4. Colgar puertas, regular y poner jaladeras", "", "", ""],
+      ["5. Revisión final y limpieza", "", "", ""],
+      ["6. Entrega o instalación", "", "", ""],
+    ],
+    { styles: { fontSize: 8.5, cellPadding: 3.2 }, columnStyles: { 0: { cellWidth: 82 }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } } },
+  );
+  const notas = cliente.notas?.trim();
+  if (notas) {
+    seccion("Notas");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...GRIS);
+    const l = doc.splitTextToSize(notas, W - 28);
+    doc.text(l, 14, y + 3);
+  }
+  doc.setFont("helvetica", "normal");
+}
+
+export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, cfg?: Configuracion, explotadas: Record<string, string> = {}, logo?: string | null) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let primera = true;
+  portadaProduccion(doc, r, taller, cliente, logo);
   r.muebles.forEach((m, idx) => {
-    if (!primera) doc.addPage();
-    primera = false;
+    doc.addPage();
     let y = encabezado(doc, `Plano ${idx + 1}: ${m.item.nombre}`, taller, cliente);
     const W = doc.internal.pageSize.getWidth();
     doc.setFontSize(9);
     doc.setTextColor(...GRIS);
-    doc.text(`${m.nombreMueble} · cantidad: ${m.item.cantidad}`, 14, y);
+    doc.text(`${m.nombreMueble} · cantidad: ${m.item.cantidad} · ${textoColores(m)}`, 14, y);
     y += 3;
     const mitad = (W - 32) / 2;
     dibujarVista(doc, m.resultado.vista, 14, y, mitad, 85, false);

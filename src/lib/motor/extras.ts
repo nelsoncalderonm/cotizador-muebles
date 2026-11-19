@@ -1,7 +1,7 @@
 // Opciones que se suman a varios muebles sin tocar su diseño: luz LED y rodachinas.
 // Agregan parámetros al formulario, herrajes al costo, pasos de armado y piezas de detalle para el 3D.
 
-import type { DefinicionMueble, Herraje, Parametro, RectVista, ResultadoMueble, ValoresParametros } from "./tipos";
+import type { Cota, DefinicionMueble, Herraje, Parametro, RectVista, ResultadoMueble, ValoresParametros } from "./tipos";
 
 /** Muebles donde tiene sentido iluminar por dentro. */
 const CON_LED = new Set(["closet", "librero", "mueble_tv", "aereo_cocina", "despensero", "vanitorio", "zapatero", "repisa_flotante", "aparador"]);
@@ -104,11 +104,56 @@ function aplicarRuedas(res: ResultadoMueble) {
   res.vista.alto += 50;
 }
 
-/** Devuelve el mueble con las opciones de LED y rodachinas que le correspondan. */
+/**
+ * Cotas interiores para el operario: ancho libre de cada hueco (arriba) y alto libre entre entrepaños
+ * de la columna con más niveles (a la izquierda). Se calculan de la vista, sirven para cualquier mueble.
+ */
+export function agregarCotasInteriores(res: ResultadoMueble) {
+  const est = res.vista.rects.filter((r) => r.tipo === "estructura" && !/^(fondo|zocalo|pata|led|tubo|faldon)/.test(r.piezaId));
+  const H = Math.max(...res.vista.rects.map((r) => r.y + r.h));
+  const verticales = est.filter((r) => r.h > r.w * 4 && r.h > H * 0.35).sort((a, b) => a.x - b.x);
+  const horizontales = est.filter((r) => r.w > r.h * 4);
+  if (verticales.length < 2) return;
+  const r0 = (n: number) => Math.round(n);
+  const nuevas: Cota[] = [];
+  // huecos entre verticales (laterales y divisiones)
+  const huecos: { x1: number; x2: number }[] = [];
+  for (let i = 0; i < verticales.length - 1; i++) {
+    const x1 = verticales[i].x + verticales[i].w, x2 = verticales[i + 1].x;
+    if (x2 - x1 > 60) huecos.push({ x1, x2 });
+  }
+  const yTop = Math.max(...verticales.map((v) => v.y + v.h));
+  for (const h of huecos) nuevas.push({ x1: h.x1, y1: yTop, x2: h.x2, y2: yTop, desplazamiento: 30, texto: `${r0(h.x2 - h.x1)}` });
+  // alturas libres en la columna con más niveles
+  let mejor: { h: (typeof huecos)[number]; niveles: RectVista[] } | null = null;
+  for (const h of huecos) {
+    const cx = (h.x1 + h.x2) / 2;
+    const niveles = horizontales.filter((r) => r.x <= cx && r.x + r.w >= cx).sort((a, b) => a.y - b.y);
+    if (niveles.length >= 2 && (!mejor || niveles.length > mejor.niveles.length)) mejor = { h, niveles };
+  }
+  if (mejor) {
+    const xs = 0; // la cadena va por fuera, a la izquierda del mueble
+    for (let i = 0; i < mejor.niveles.length - 1; i++) {
+      const y1 = mejor.niveles[i].y + mejor.niveles[i].h, y2 = mejor.niveles[i + 1].y;
+      if (y2 - y1 > 60) nuevas.push({ x1: xs, y1, x2: xs, y2, desplazamiento: 30, texto: `${r0(y2 - y1)}` });
+    }
+  }
+  res.vista.cotas.push(...nuevas);
+}
+
+/** Devuelve el mueble con las opciones de LED y rodachinas que le correspondan, y sus cotas interiores. */
 export function conExtras(def: DefinicionMueble): DefinicionMueble {
   const led = CON_LED.has(def.id);
   const ruedas = CON_RODACHINAS.has(def.id);
-  if (!led && !ruedas) return def;
+  if (!led && !ruedas)
+    return {
+      ...def,
+      generar(p: ValoresParametros, cfg) {
+        const res = def.generar(p, cfg);
+        agregarCotasInteriores(res);
+        return res;
+      },
+    };
   return {
     ...def,
     parametros: [...def.parametros, ...(led ? [PARAM_LED] : []), ...(ruedas ? [PARAM_RUEDAS] : [])],
@@ -117,6 +162,7 @@ export function conExtras(def: DefinicionMueble): DefinicionMueble {
       const modo = String(p.luzLed ?? "no");
       if (led && modo !== "no") aplicarLed(res, modo);
       if (ruedas && p.rodachinas === true) aplicarRuedas(res);
+      agregarCotasInteriores(res);
       return res;
     },
   };

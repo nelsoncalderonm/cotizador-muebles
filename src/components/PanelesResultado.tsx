@@ -65,13 +65,13 @@ export function useAccionesPdf() {
       await compartirPdf(pdfProveedor(resultado, config, taller, cliente, leerFotos().logo), nombreArchivo("orden-de-corte", cliente.proyecto));
     },
     planos: async () => {
-      const [{ pdfPlanos, compartirPdf }, { vistaExplotada, codigosMueble }] = await Promise.all([import("@/lib/pdf"), import("@/lib/explotada")]);
+      const [{ pdfPlanos, compartirPdf }, { vistaExplotada, codigosMueble }, { leerFotos }] = await Promise.all([import("@/lib/pdf"), import("@/lib/explotada"), import("@/lib/fotos")]);
       const explotadas: Record<string, string> = {};
       for (const [i, m] of resultado.muebles.entries()) {
         const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, i), m.item.acabados, m.item.muebleId).catch(() => null);
         if (url) explotadas[m.item.uid] = url;
       }
-      await compartirPdf(pdfPlanos(resultado, taller, cliente, config, explotadas), nombreArchivo("planos", cliente.proyecto));
+      await compartirPdf(pdfPlanos(resultado, taller, cliente, config, explotadas, leerFotos().logo), nombreArchivo("orden-de-produccion", cliente.proyecto));
     },
     /** Arma el PDF de la cotización sin compartirlo (para verlo o enviarlo). */
     docCotizacion: async (detallado: boolean, conTrabajos = true) => {
@@ -98,9 +98,9 @@ export function PanelCortes() {
         Medidas de corte en mm, ya descontando {config.espesorCanto} mm de canto por arista. Total de canto: <b>{mm(resultado.metrosCanto)} m</b>.
       </p>
       {resultado.materiales
-        .filter((m) => resultado.cortes.some((f) => f.material === m.clave))
+        .filter((m) => resultado.cortes.some((f) => f.tablero === m.id))
         .map((m) => (
-          <section key={m.clave} className="bloque">
+          <section key={m.id} className="bloque">
             <h3>{m.nombre}</h3>
             <div className="tabla-cortes">
               <div className="fila cab">
@@ -112,7 +112,7 @@ export function PanelCortes() {
                 <span>Canto</span>
               </div>
               {resultado.cortes
-                .filter((f) => f.material === m.clave)
+                .filter((f) => f.tablero === m.id)
                 .map((f) => (
                   <div className="fila" key={f.codigo}>
                     <span>
@@ -172,7 +172,7 @@ export function PanelLaminas() {
       {resultado.materiales
         .filter((m) => m.laminas.length)
         .map((m) => (
-          <section key={m.clave} className="bloque">
+          <section key={m.id} className="bloque">
             <h3>
               {m.nombre}: {m.laminas.length} lámina{m.laminas.length > 1 ? "s" : ""}
             </h3>
@@ -226,7 +226,7 @@ export function PanelArmado() {
     <div className="panel">
       <div className="panel-cab">
         <h2>Planos y armado</h2>
-        <BotonPdf principal etiqueta="PDF de planos" generar={pdf.planos} />
+        <BotonPdf principal etiqueta="Orden de producción (PDF)" generar={pdf.planos} />
       </div>
       <div className="chips">
         {resultado.muebles.map((x, i) => (
@@ -374,9 +374,8 @@ function BloqueProveedor() {
     "",
     "*Tableros*",
     ...usados.map((m) => {
-      const t = config.materiales[m.clave];
-      const espesor = t.nombre.includes(`${mm(t.espesor)} mm`) ? "" : `, ${mm(t.espesor)} mm`;
-      return `• ${plural(m.laminas.length, "lámina", "láminas")} de ${t.nombre}${espesor} (${mm(t.largoLamina)} × ${mm(t.anchoLamina)} mm)`;
+      const espesor = m.nombre.includes(`${mm(m.espesor)} mm`) ? "" : `, ${mm(m.espesor)} mm`;
+      return `• ${plural(m.laminas.length, "lámina", "láminas")} de ${m.nombre}${espesor} (${mm(m.largoLamina)} × ${mm(m.anchoLamina)} mm)`;
     }),
     "",
     "*Corte y canto*",
@@ -434,15 +433,14 @@ function BloqueProveedor() {
       <p className="nota">Escribe el precio por unidad. La cotización se actualiza sola y los precios quedan guardados para la próxima.</p>
       <div className="lista-proveedor">
         {usados.map((m) => {
-          const t = config.materiales[m.clave];
           return (
             <PrecioProveedor
-              key={m.clave}
-              nombre={`${t.nombre} (por lámina)`}
+              key={m.id}
+              nombre={`${m.nombre} (por lámina)`}
               cantidad={`Necesitas ${plural(m.laminas.length, "lámina", "láminas")}`}
-              valor={t.precioLamina}
+              valor={m.precioLamina}
               simbolo={precios.simbolo}
-              onCambio={(n) => setConfig({ ...config, materiales: { ...config.materiales, [m.clave]: { ...t, precioLamina: n } } })}
+              onCambio={(n) => setConfig({ ...config, preciosTablero: { ...config.preciosTablero, [m.id]: n } })}
             />
           );
         })}
@@ -856,7 +854,7 @@ export function PanelCotizar() {
 
       <div className="acciones apiladas">
         <BotonPdf etiqueta="PDF de cortes para el proveedor" generar={pdf.proveedor} />
-        <BotonPdf etiqueta="PDF de planos de armado" generar={pdf.planos} />
+        <BotonPdf etiqueta="Orden de producción (PDF)" generar={pdf.planos} />
       </div>
     </div>
   );

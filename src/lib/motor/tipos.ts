@@ -111,6 +111,8 @@ export interface Configuracion {
   holgura: number; // separación entre frentes (mm)
   sierra: number; // grosor de la sierra (mm)
   refilado: number; // mm que se recortan en cada borde de la lámina
+  /** Precio por lámina de cada tablero de color (clave = ResumenMaterial.id); si falta, se usa el del material base. */
+  preciosTablero?: Record<string, number>;
 }
 
 export interface DefinicionMueble {
