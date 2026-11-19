@@ -129,7 +129,7 @@ function MisFotos() {
 export function PanelPrecios() {
   const { config, setConfig, precios, setPrecios, taller, setTaller, repetirConfiguracion } = useEstado();
   const { activas, correo, cuenta, salir } = useCuenta();
-  const claves: ClaveMaterial[] = ["cuerpo", "frente", "fondo"];
+  const claves: ClaveMaterial[] = ["cuerpo", "frente", "interior", "fondo"];
   return (
     <div className="panel">
       <div className="panel-cab">

@@ -60,7 +60,7 @@ export function referenciaPais(p: Pais): { config: Configuracion; precios: Preci
   const base = CONFIG_DEFECTO.materiales;
   const mat = <K extends keyof typeof base>(k: K) => ({ ...base[k], largoLamina: p.lamina[0], anchoLamina: p.lamina[1], precioLamina: c((base[k].precioLamina * (p.lamina[0] * p.lamina[1])) / (2440 * 1830)) });
   return {
-    config: { ...CONFIG_DEFECTO, materiales: { cuerpo: mat("cuerpo"), frente: mat("frente"), fondo: mat("fondo") } },
+    config: { ...CONFIG_DEFECTO, materiales: { cuerpo: mat("cuerpo"), frente: mat("frente"), interior: mat("interior"), fondo: mat("fondo") } },
     precios: {
       ...PRECIOS_DEFECTO,
       simbolo: p.simbolo,

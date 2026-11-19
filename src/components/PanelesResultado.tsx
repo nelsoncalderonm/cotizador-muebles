@@ -68,7 +68,7 @@ export function useAccionesPdf() {
       const [{ pdfPlanos, compartirPdf }, { vistaExplotada, codigosMueble }] = await Promise.all([import("@/lib/pdf"), import("@/lib/explotada")]);
       const explotadas: Record<string, string> = {};
       for (const [i, m] of resultado.muebles.entries()) {
-        const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, i), m.item.acabados).catch(() => null);
+        const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, i), m.item.acabados, m.item.muebleId).catch(() => null);
         if (url) explotadas[m.item.uid] = url;
       }
       await compartirPdf(pdfPlanos(resultado, taller, cliente, config, explotadas), nombreArchivo("planos", cliente.proyecto));
@@ -176,12 +176,13 @@ export function PanelLaminas() {
             <h3>
               {m.nombre}: {m.laminas.length} lámina{m.laminas.length > 1 ? "s" : ""}
             </h3>
+            {m.veta && <p className="veta-nota">Con veta: las líneas muestran el sentido de la veta (a lo largo de la lámina). No girar las piezas.</p>}
             {m.laminas.map((l) => (
               <figure key={l.numero} className="lamina">
                 <figcaption>
                   Lámina {l.numero} · {l.piezas.length} piezas · <b>{Math.round(l.aprovechamiento * 100)} %</b> aprovechado
                 </figcaption>
-                <LaminaSvg lamina={l} />
+                <LaminaSvg lamina={l} veta={m.veta} />
               </figure>
             ))}
           </section>
@@ -207,7 +208,7 @@ export function PanelArmado() {
     (async () => {
       const { vistaExplotada, codigosMueble } = await import("@/lib/explotada");
       const idx = resultado.muebles.indexOf(m);
-      const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, idx), m.item.acabados);
+      const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, idx), m.item.acabados, m.item.muebleId);
       if (vivo) setExplotada({ clave: claveExp, url });
     })();
     return () => {

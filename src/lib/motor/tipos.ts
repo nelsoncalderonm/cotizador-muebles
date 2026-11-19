@@ -1,6 +1,6 @@
 // Tipos base del motor paramétrico. Todas las medidas en milímetros.
 
-export type ClaveMaterial = "cuerpo" | "frente" | "fondo";
+export type ClaveMaterial = "cuerpo" | "frente" | "fondo" | "interior";
 
 export interface Material {
   clave: ClaveMaterial;

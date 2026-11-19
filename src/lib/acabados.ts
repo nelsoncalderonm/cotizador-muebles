@@ -43,6 +43,8 @@ export interface AcabadosItem {
   cuerpo: string;
   frente: string;
   jaladera: string;
+  /** Partes que no se ven en melamina blanca (por defecto sí, si el cuerpo es de color o madera). */
+  interiorBlanco?: boolean;
 }
 
 export const ACABADOS_DEFECTO: AcabadosItem = { cuerpo: "blanco", frente: "roble", jaladera: "negro" };

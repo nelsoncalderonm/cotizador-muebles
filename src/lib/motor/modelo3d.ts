@@ -4,7 +4,7 @@
 import { bisagrasPorPuerta, esPuerta as idPuerta } from "./constructor";
 import type { Configuracion, ResultadoMueble } from "./tipos";
 
-export type TipoBloque = "cuerpo" | "frente" | "fondo" | "metal" | "luz";
+export type TipoBloque = "cuerpo" | "interior" | "frente" | "fondo" | "metal" | "luz";
 
 export interface Bloque {
   piezaId: string;
@@ -31,7 +31,7 @@ export interface Modelo3D {
 
 const JALADERA = { largo: 128, grosor: 12, salida: 28 };
 
-export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion): Modelo3D {
+export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion, interior: Set<string> = new Set()): Modelo3D {
   const e = cfg.materiales.cuerpo.espesor;
   const eF = cfg.materiales.frente.espesor;
   const eFondo = cfg.materiales.fondo.espesor;
@@ -149,6 +149,11 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
           caja(z0, F - z0);
         }
     }
+  }
+  // partes que no se ven en melamina blanca (la caja del cajón en 3D representa costados y contras)
+  if (interior.size) {
+    const cajonesBlancos = [...interior].some((id) => /_costado$/.test(id));
+    for (const b of bloques) if (b.tipo === "cuerpo" && (interior.has(b.piezaId) || (b.piezaId === "cajon_caja" && cajonesBlancos))) b.tipo = "interior";
   }
   return { bloques, ancho: res.vista.ancho, alto: res.vista.alto, fondo: F + eF + JALADERA.salida };
 }

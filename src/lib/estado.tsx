@@ -79,6 +79,13 @@ function cargar(): Guardado {
 }
 
 /** Completa con los valores por defecto lo que falte (datos viejos o de otra versión). */
+/** Quien ya tenía sus tableros configurados recibe la melamina blanca de interior con su misma lámina y espesor, ~15 % más barata que la del cuerpo. */
+function conInterior(m: Configuracion["materiales"], guardados?: Partial<Configuracion["materiales"]>): Configuracion["materiales"] {
+  if (guardados?.interior || !guardados?.cuerpo) return m;
+  const c = m.cuerpo;
+  return { ...m, interior: { ...m.interior, espesor: c.espesor, largoLamina: c.largoLamina, anchoLamina: c.anchoLamina, precioLamina: Math.round(c.precioLamina * 85) / 100 } };
+}
+
 export function normalizar(g: Partial<Guardado>): Guardado {
   try {
     const cliente = { ...INICIAL.cliente, ...g.cliente };
@@ -86,7 +93,7 @@ export function normalizar(g: Partial<Guardado>): Guardado {
       proyectoId: g.proyectoId || nuevoId(),
       proyectos: (g.proyectos ?? []).map((p) => ({ ...p, items: p.items ?? [], cliente: { ...INICIAL.cliente, ...p.cliente } })),
       items: g.items ?? [],
-      config: { ...CONFIG_DEFECTO, ...g.config, materiales: { ...CONFIG_DEFECTO.materiales, ...g.config?.materiales } },
+      config: { ...CONFIG_DEFECTO, ...g.config, materiales: conInterior({ ...CONFIG_DEFECTO.materiales, ...g.config?.materiales }, g.config?.materiales) },
       precios: { ...PRECIOS_DEFECTO, ...g.precios, herrajes: { ...PRECIOS_DEFECTO.herrajes, ...g.precios?.herrajes } },
       cliente,
       taller: { ...INICIAL.taller, ...g.taller },

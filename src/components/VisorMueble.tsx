@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
+import { piezasInterior } from "@/lib/motor/interior";
 import { ACABADOS, ACABADOS_DEFECTO, JALADERAS, acabado, esColorLibre, muestraCss, type AcabadosItem } from "@/lib/acabados";
 import { useEstado } from "@/lib/estado";
 import { ESCENARIOS, type Escenario } from "@/lib/escenarios";
@@ -45,6 +46,16 @@ function ModalAcabados({ valor, onCambio, onCerrar }: { valor: AcabadosItem; onC
         </div>
         {grupo("Puertas y frentes", "frente")}
         {grupo("Cuerpo del mueble", "cuerpo")}
+        {valor.cuerpo !== "blanco" && (
+          <label className="campo campo-switch interior-blanco">
+            <span>
+              Partes que no se ven en melamina blanca
+              <small>Cajones por dentro, travesaños y entrepaños o divisiones detrás de puertas. Sale más económico.</small>
+            </span>
+            <input type="checkbox" checked={valor.interiorBlanco !== false} onChange={(e) => onCambio({ ...valor, interiorBlanco: e.target.checked })} />
+            <i aria-hidden />
+          </label>
+        )}
         <section>
           <h4>Jaladeras</h4>
           <div className="muestras">
@@ -102,7 +113,7 @@ export function VisorMueble({ item, res }: { item: ItemProyecto; res: ResultadoM
   const capturar = useRef<(() => Blob | null) | null>(null);
   const acabados = item.acabados ?? ACABADOS_DEFECTO;
   const fondo = Number(item.valores.fondo ?? 500);
-  const modelo = useMemo(() => modelo3d(res, fondo, config), [res, fondo, config]);
+  const modelo = useMemo(() => modelo3d(res, fondo, config, piezasInterior(res, item.muebleId, acabados)), [res, fondo, config, item.muebleId, acabados]);
   const tieneMoviles = modelo.bloques.some((b) => b.movil);
 
   async function compartirImagen() {

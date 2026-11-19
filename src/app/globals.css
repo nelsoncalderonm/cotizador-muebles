@@ -698,6 +698,11 @@ p.avisos {
   stroke-width: 0.8;
 }
 
+.cota line.tope {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .cota text {
   fill: var(--texto);
   font-weight: 600;
@@ -3299,4 +3304,25 @@ p.avisos {
 .ref-dif ul {
   margin: 4px 0 0;
   padding-left: 18px;
+}
+.interior-blanco {
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+.interior-blanco small {
+  display: block;
+  font-weight: 400;
+  color: var(--suave);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+.veta-nota {
+  margin: -4px 0 10px;
+  font-size: 0.85rem;
+  color: #7a5530;
+}
+.interior-blanco > span {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
 }

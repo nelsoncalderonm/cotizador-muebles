@@ -6,6 +6,7 @@ export const CONFIG_DEFECTO: Configuracion = {
   materiales: {
     cuerpo: { clave: "cuerpo", nombre: "Melamina 18 mm (cuerpo)", espesor: 18, largoLamina: 2440, anchoLamina: 1830, precioLamina: 230000, veta: false },
     frente: { clave: "frente", nombre: "Melamina 18 mm (frentes)", espesor: 18, largoLamina: 2440, anchoLamina: 1830, precioLamina: 260000, veta: false },
+    interior: { clave: "interior", nombre: "Melamina blanca 18 mm (interior)", espesor: 18, largoLamina: 2440, anchoLamina: 1830, precioLamina: 195000, veta: false },
     fondo: { clave: "fondo", nombre: "HDF 3 mm (fondos)", espesor: 3, largoLamina: 2440, anchoLamina: 1830, precioLamina: 48000, veta: false },
   },
   espesorCanto: 0.45,

@@ -70,6 +70,7 @@ export function Onboarding() {
         ...cfg.materiales,
         cuerpo: { ...cfg.materiales.cuerpo, espesor: e, nombre: `Melamina ${e} mm (cuerpo)` },
         frente: { ...cfg.materiales.frente, espesor: e, nombre: `Melamina ${e} mm (frentes)` },
+        interior: { ...cfg.materiales.interior, espesor: e, nombre: `Melamina blanca ${e} mm (interior)` },
       },
     }));
 

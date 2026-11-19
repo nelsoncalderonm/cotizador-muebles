@@ -418,6 +418,9 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
       });
     const matCuerpo = () => melamina(tCuerpo, aCuerpo);
     const matFrente = () => melamina(tFrente, aFrente);
+    const tBlanco = aCuerpo.id === "blanco" ? tCuerpo : texturaAcabado(acabado("blanco"));
+    if (tBlanco !== tCuerpo) s.texturas.push(tBlanco.mapa, tBlanco.relieve);
+    const matInterior = () => melamina(tBlanco, acabado("blanco"));
     const matFondo = () => new THREE.MeshStandardMaterial({ map: tCuerpo.mapa, roughness: 0.8, color: "#d9d4cc" });
     const matMetal = () => new THREE.MeshStandardMaterial({ color: met.color, metalness: met.metal, roughness: met.rugosidad });
     const matPata = () => new THREE.MeshStandardMaterial({ color: "#2a2a2c", roughness: 0.5, metalness: 0.2 });
@@ -438,7 +441,7 @@ export function Vista3D({ modelo, acabados, abierto, escenario = "estudio", mueb
       } else if (b.piezaId === "jaladera") geo = geoJaladera(b.w * MM, b.h * MM, b.d * MM);
       else geo = cajaConUV(b.w * MM, b.h * MM, b.d * MM, (n++ * 0.173) % 1, false); // la veta siempre perpendicular al piso (en piezas acostadas, de adelante hacia atrás), como en la lista de cortes
       const metal = b.piezaId === "pata" || b.piezaId === "rodachina" ? matPata() : b.piezaId === "jaladera" ? matMetal() : matHerraje();
-      const mat = b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? metal : b.tipo === "luz" ? matLuz() : matCuerpo();
+      const mat = b.tipo === "frente" ? matFrente() : b.tipo === "fondo" ? matFondo() : b.tipo === "metal" ? metal : b.tipo === "luz" ? matLuz() : b.tipo === "interior" ? matInterior() : matCuerpo();
       const m = new THREE.Mesh(geo, mat);
       m.castShadow = b.tipo !== "fondo";
       m.receiveShadow = true;

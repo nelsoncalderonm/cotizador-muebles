@@ -182,7 +182,14 @@ export function dibujarVista(doc: jsPDF, vista: ResultadoMueble["vista"], x: num
       const b = { x: X(c.x2 + nx * d), y: Y(c.y2 + ny * d) };
       doc.line(X(c.x1 + nx * 1 / esc), Y(c.y1 + ny * 1 / esc), a.x + nx, a.y - ny);
       doc.line(X(c.x2 + nx * 1 / esc), Y(c.y2 + ny * 1 / esc), b.x + nx, b.y - ny);
+      doc.setLineWidth(0.2);
       doc.line(a.x, a.y, b.x, b.y);
+      // topes de la cota: trazo a 45° en cada extremo, donde la línea de cota cruza la de referencia
+      const ux = (b.x - a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1), uy = (b.y - a.y) / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
+      const tx = (ux - uy) * 1.1, ty = (uy + ux) * 1.1;
+      doc.setLineWidth(0.45);
+      for (const p of [a, b]) doc.line(p.x - tx, p.y - ty, p.x + tx, p.y + ty);
+      doc.setLineWidth(0.2);
       const vertical = Math.abs(dx) < Math.abs(dy);
       const mx = (a.x + b.x) / 2 + nx * 1.6, my = (a.y + b.y) / 2 - ny * 1.6;
       doc.text(c.texto, mx, my, vertical ? { angle: 90, align: "center", baseline: "bottom" } : { align: "center", baseline: "bottom" });
@@ -190,15 +197,53 @@ export function dibujarVista(doc: jsPDF, vista: ResultadoMueble["vista"], x: num
   }
 }
 
-function dibujarLamina(doc: jsPDF, lamina: Lamina, x: number, y: number, w: number, h: number) {
+/** Líneas onduladas de veta dentro de un rectángulo, en el sentido del largo de la lámina (horizontal en la hoja). */
+function lineasVeta(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  if (w < 4 || h < 3) return;
+  doc.setDrawColor(150, 112, 70);
+  doc.setLineWidth(0.12);
+  const sep = 2.6, paso = 2.5, amp = 0.32;
+  for (let k = 0, yy = y + sep / 2; yy < y + h - 0.6; yy += sep, k++) {
+    let px = x + 0.6, py = yy;
+    for (let xx = x + 0.6 + paso; xx <= x + w - 0.6; xx += paso) {
+      const ny = yy + Math.sin(xx * 0.55 + k * 1.7) * amp;
+      doc.line(px, py, xx, ny);
+      px = xx;
+      py = ny;
+    }
+  }
+  doc.setDrawColor(60, 60, 60);
+  doc.setLineWidth(0.25);
+}
+
+function dibujarLamina(doc: jsPDF, lamina: Lamina, x: number, y: number, w: number, h: number, veta = false) {
   const esc = Math.min(w / lamina.largo, h / lamina.ancho);
   doc.setLineWidth(0.25);
   doc.setFillColor(238, 238, 238);
   doc.setDrawColor(60, 60, 60);
   doc.rect(x, y, lamina.largo * esc, lamina.ancho * esc, "FD");
+  if (veta) {
+    // flecha con el sentido de la veta, encima de la lámina
+    const ay = y - 2.2, ax = x + lamina.largo * esc;
+    doc.setDrawColor(150, 112, 70);
+    doc.setLineWidth(0.5);
+    doc.line(ax - 40, ay, ax, ay);
+    doc.line(ax, ay, ax - 2.5, ay - 1.3);
+    doc.line(ax, ay, ax - 2.5, ay + 1.3);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(150, 112, 70);
+    doc.text("SENTIDO DE LA VETA", ax - 42, ay + 0.9, { align: "right" });
+    doc.setDrawColor(60, 60, 60);
+    doc.setLineWidth(0.25);
+  }
   for (const p of lamina.piezas) {
     doc.setFillColor(...colorMuebleRgb(p.ref));
     doc.rect(x + p.x * esc, y + p.y * esc, p.w * esc, p.h * esc, "FD");
+    if (veta) {
+      lineasVeta(doc, x + p.x * esc, y + p.y * esc, p.w * esc, p.h * esc);
+      doc.rect(x + p.x * esc, y + p.y * esc, p.w * esc, p.h * esc, "S");
+    }
     const pw = p.w * esc, ph = p.h * esc;
     const largo = p.rotada ? p.h : p.w;
     const ancho = p.rotada ? p.w : p.h;
@@ -289,12 +334,12 @@ export function pdfProveedor(r: ResultadoProyecto, cfg: Configuracion, taller: D
       doc.setTextColor(30, 30, 30);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
-      doc.text(`${m.nombre} · Lámina ${l.numero} de ${m.laminas.length}`, 14, 14);
+      doc.text(`${m.nombre} · Lámina ${l.numero} de ${m.laminas.length}${m.veta ? " · CON VETA" : ""}`, 14, 14);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(...GRIS);
       doc.text(`${l.largo}×${l.ancho} mm · ${l.piezas.length} piezas · aprovechamiento ${Math.round(l.aprovechamiento * 100)} %`, W - 14, 14, { align: "right" });
-      dibujarLamina(doc, l, 14, 20, W - 28, 180);
+      dibujarLamina(doc, l, 14, 22, W - 28, 178, m.veta);
     }
   }
   pies(doc);

@@ -3,6 +3,7 @@
 // (el mismo de la lista de cortes) y los herrajes nombrados. Se dibuja fuera de pantalla y sale como imagen.
 
 import * as THREE from "three";
+import { piezasInterior } from "./motor/interior";
 import { ACABADOS_DEFECTO, acabado, type AcabadosItem } from "./acabados";
 import { modelo3d, type Bloque } from "./motor/modelo3d";
 import type { Configuracion, ResultadoMueble } from "./motor/tipos";
@@ -40,8 +41,8 @@ function desplazamientos(bloques: Bloque[], A: number, H: number, F: number) {
   return bloques.map((b, i) => (b.padre !== undefined ? base[b.padre].clone().add(new THREE.Vector3(0, 0, b.piezaId === "jaladera" ? 60 : b.piezaId === "bisagra" ? -40 : -F * 0.35)) : base[i]));
 }
 
-export async function vistaExplotada(res: ResultadoMueble, fondo: number, config: Configuracion, codigos: Record<string, string>, acabados: AcabadosItem = ACABADOS_DEFECTO): Promise<string | null> {
-  const modelo = modelo3d(res, fondo, config);
+export async function vistaExplotada(res: ResultadoMueble, fondo: number, config: Configuracion, codigos: Record<string, string>, acabados: AcabadosItem = ACABADOS_DEFECTO, muebleId = ""): Promise<string | null> {
+  const modelo = modelo3d(res, fondo, config, piezasInterior(res, muebleId, acabados));
   const { bloques } = modelo;
   const A = modelo.ancho, H = modelo.alto, F = fondo;
   const W = 1400, Hc = 1250; // tamaño del dibujo 3D
@@ -70,6 +71,7 @@ export async function vistaExplotada(res: ResultadoMueble, fondo: number, config
       if (b.tipo === "fondo") return "#d9c7a8";
       if (b.tipo === "metal") return "#8b9097";
       if (b.tipo === "luz") return "#ffe7a8";
+      if (b.tipo === "interior") return acabado("blanco").base;
       return acabado(acabados.cuerpo).base;
     };
     const mats = new Map<string, THREE.Material>();

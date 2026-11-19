@@ -1,7 +1,8 @@
 // Cálculo completo de un proyecto: varios muebles → lista de cortes, láminas optimizadas, herrajes y cotización.
 
 import { buscarMueble } from "./catalogo";
-import { ACABADOS_DEFECTO, acabado } from "../acabados";
+import { ACABADOS_DEFECTO, acabado, type AcabadosItem } from "../acabados";
+import { esInterior, piezasInterior } from "./interior";
 import { optimizar, type Lamina, type PiezaACortar } from "./optimizador";
 import type { ClaveMaterial, Configuracion, Herraje, Pieza, ResultadoMueble, ValoresParametros } from "./tipos";
 
@@ -11,7 +12,7 @@ export interface ItemProyecto {
   nombre: string;
   valores: ValoresParametros;
   cantidad: number;
-  acabados?: { cuerpo: string; frente: string; jaladera: string };
+  acabados?: AcabadosItem;
 }
 
 export interface Precios {
@@ -143,7 +144,9 @@ export function calcularProyecto(items: ItemProyecto[], cfg: Configuracion, prec
     const res = def.generar(item.valores, cfg);
     muebles.push({ item, nombreMueble: def.nombre, resultado: res });
     res.advertencias.forEach((a) => advertencias.push(`${item.nombre}: ${a}`));
-    res.piezas.forEach((p0, j) => {
+    const interior = piezasInterior(res, item.muebleId, item.acabados);
+    res.piezas.forEach((pOriginal, j) => {
+      const p0: Pieza = esInterior(pOriginal, interior) ? { ...pOriginal, material: "interior" } : pOriginal;
       const veta = conVeta.has(p0.material);
       // con veta, el largo de corte es la medida vertical: se gira la pieza (y sus cantos) si hace falta
       const girar = veta && medidaVertical(res, p0, cfg.materiales[p0.material].espesor) === "ancho";
