@@ -65,8 +65,13 @@ export function useAccionesPdf() {
       await compartirPdf(pdfProveedor(resultado, config, taller, cliente, leerFotos().logo), nombreArchivo("orden-de-corte", cliente.proyecto));
     },
     planos: async () => {
-      const { pdfPlanos, compartirPdf } = await import("@/lib/pdf");
-      await compartirPdf(pdfPlanos(resultado, taller, cliente, config), nombreArchivo("planos", cliente.proyecto));
+      const [{ pdfPlanos, compartirPdf }, { vistaExplotada, codigosMueble }] = await Promise.all([import("@/lib/pdf"), import("@/lib/explotada")]);
+      const explotadas: Record<string, string> = {};
+      for (const [i, m] of resultado.muebles.entries()) {
+        const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, i), m.item.acabados).catch(() => null);
+        if (url) explotadas[m.item.uid] = url;
+      }
+      await compartirPdf(pdfPlanos(resultado, taller, cliente, config, explotadas), nombreArchivo("planos", cliente.proyecto));
     },
     /** Arma el PDF de la cotización sin compartirlo (para verlo o enviarlo). */
     docCotizacion: async (detallado: boolean, conTrabajos = true) => {
@@ -191,8 +196,24 @@ export function PanelArmado() {
   const [sel, setSel] = useState(0);
   const [paso, setPaso] = useState(0);
   const [todas, setTodas] = useState(false);
+  const [explotada, setExplotada] = useState<{ clave: string; url: string | null } | null>(null);
+  const [verExplotada, setVerExplotada] = useState(false);
   const m = resultado.muebles[Math.min(sel, Math.max(0, resultado.muebles.length - 1))];
   const planos = useMemo(() => (m ? perforaciones(m.resultado, config, Number(m.item.valores.fondo ?? 500)) : []), [m, config]);
+  const claveExp = m ? `${m.item.uid}:${JSON.stringify(m.item.valores)}:${JSON.stringify(m.item.acabados)}` : "";
+  useEffect(() => {
+    if (!verExplotada || !m || explotada?.clave === claveExp) return;
+    let vivo = true;
+    (async () => {
+      const { vistaExplotada, codigosMueble } = await import("@/lib/explotada");
+      const idx = resultado.muebles.indexOf(m);
+      const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, idx), m.item.acabados);
+      if (vivo) setExplotada({ clave: claveExp, url });
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [verExplotada, claveExp, m, config, resultado.muebles, explotada?.clave]);
   if (!resultado.muebles.length || !m) return <Vacio />;
   const pasos = m.resultado.pasos;
   const p = Math.min(paso, pasos.length - 1);
@@ -220,6 +241,31 @@ export function PanelArmado() {
           </button>
         ))}
       </div>
+      <div className="segmentos vista-armado" role="group" aria-label="Tipo de vista">
+        <button className={!verExplotada ? "activo" : ""} aria-pressed={!verExplotada} onClick={() => setVerExplotada(false)}>
+          Paso a paso
+        </button>
+        <button className={verExplotada ? "activo" : ""} aria-pressed={verExplotada} onClick={() => setVerExplotada(true)}>
+          Vista explotada 3D
+        </button>
+      </div>
+      {verExplotada && (
+        <figure className="explotada">
+          {explotada?.clave === claveExp ? (
+            explotada.url ? (
+              <div className="explotada-scroll">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={explotada.url} alt={`Vista explotada de ${m.item.nombre} con el código de cada pieza y sus herrajes`} />
+              </div>
+            ) : (
+              <p className="hist-nota">Este equipo no puede dibujar en 3D.</p>
+            )
+          ) : (
+            <div className="cargando-3d" aria-label="Dibujando la vista explotada" />
+          )}
+          <figcaption>Cada línea punteada lleva al código de la pieza en la lista de cortes (café) o al herraje (azul). Desliza la imagen hacia los lados para verla completa.</figcaption>
+        </figure>
+      )}
       <div className="editor">
         <div className="editor-vista">
           <VistaMueble vista={m.resultado.vista} visibles={visibles} conocidas={conocidas} resaltar={resaltar} frentes={conFrentes} />

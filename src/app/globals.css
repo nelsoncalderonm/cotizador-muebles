@@ -3150,3 +3150,31 @@ p.avisos {
   margin: 0 0 6px;
   font-size: 0.92rem;
 }
+.vista-armado {
+  margin: 10px 0;
+}
+.explotada {
+  margin: 0 0 14px;
+  padding: 8px;
+  border-radius: var(--radio);
+  border: 1px solid var(--borde);
+  background: #fff;
+}
+.explotada .explotada-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.explotada img {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+}
+.explotada .cargando-3d {
+  aspect-ratio: 2060 / 1250;
+}
+.explotada figcaption {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #5a6b80;
+}

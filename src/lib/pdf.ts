@@ -461,7 +461,7 @@ function trabajosAnteriores(doc: jsPDF, trabajos: { url: string; titulo: string 
 }
 
 /** Planos de fabricación: por mueble, vistas con cotas, despiece y pasos de armado. */
-export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, cfg?: Configuracion) {
+export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: DatosCliente, cfg?: Configuracion, explotadas: Record<string, string> = {}) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let primera = true;
   r.muebles.forEach((m, idx) => {
@@ -536,6 +536,18 @@ export function pdfPlanos(r: ResultadoProyecto, taller: DatosTaller, cliente: Da
       doc.setFontSize(8.5);
       doc.setTextColor(...GRIS);
       doc.text(herr, 14, y + 7);
+    }
+    const exp = explotadas[m.item.uid];
+    if (exp) {
+      doc.addPage();
+      const yE = encabezado(doc, `Vista explotada ${idx + 1}: ${m.item.nombre}`, taller, cliente);
+      const Wp = doc.internal.pageSize.getWidth();
+      const p = doc.getImageProperties(exp);
+      const ancho = Wp - 20;
+      doc.addImage(exp, "JPEG", 10, yE, ancho, (ancho * p.height) / p.width);
+      doc.setFontSize(8);
+      doc.setTextColor(...GRIS);
+      doc.text("Cada línea punteada lleva al código de la pieza en la lista de cortes (café) o al herraje (azul). Las perforaciones de cada pieza están en las hojas siguientes.", 14, yE + (ancho * p.height) / p.width + 6, { maxWidth: Wp - 28 });
     }
     if (cfg) paginasPerforacion(doc, m, idx, cfg, taller, cliente);
   });
