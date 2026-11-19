@@ -3178,3 +3178,125 @@ p.avisos {
   font-size: 0.8rem;
   color: #5a6b80;
 }
+
+/* Copiar un mueble de una foto */
+.ref-foto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 12px;
+}
+.ref-foto .avisos {
+  flex-basis: 100%;
+  margin: 0;
+}
+.btn-ref {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  border: 2px solid var(--primario);
+  border-radius: 14px;
+  background: var(--superficie);
+  color: var(--marino);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.btn-ref svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.ref-cab {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.ref-cab .nota {
+  margin: 2px 0 0;
+}
+.ref-img {
+  width: 92px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex: none;
+  border: 1px solid var(--borde);
+}
+.ref-nombre {
+  display: block;
+  font-size: 1.1rem;
+}
+.ref-conf {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #e3f1e6;
+  color: #22663a;
+}
+.ref-conf.media {
+  background: #fff3d6;
+  color: #7a5600;
+}
+.ref-conf.baja {
+  background: #fde6e1;
+  color: #8a2c1a;
+}
+.ref-expl {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+}
+.ref-valores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+.ref-valores li {
+  font-size: 0.82rem;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 3px 8px;
+}
+.ref-colores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.ref-colores span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ref-colores i {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--borde);
+}
+.ref-dif {
+  font-size: 0.85rem;
+  background: var(--fondo);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.ref-dif ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}

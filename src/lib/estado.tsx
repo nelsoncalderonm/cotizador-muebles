@@ -126,7 +126,7 @@ interface Ctx extends Guardado {
   resultado: ResultadoProyecto;
   seleccion: string | null;
   seleccionar: (uid: string | null) => void;
-  agregar: (muebleId: string, valores?: ItemProyecto["valores"], cantidad?: number) => void;
+  agregar: (muebleId: string, valores?: ItemProyecto["valores"], cantidad?: number, extra?: Pick<ItemProyecto, "acabados">) => void;
   actualizarItem: (uid: string, cambios: Partial<ItemProyecto>) => void;
   duplicar: (uid: string) => void;
   eliminar: (uid: string) => void;
@@ -171,10 +171,10 @@ export function ProveedorEstado({ children }: { children: ReactNode }) {
 
   const resultado = useMemo(() => calcularProyecto(g.items, g.config, g.precios, g.cliente.transporte), [g.items, g.config, g.precios, g.cliente.transporte]);
 
-  const agregar = useCallback((muebleId: string, valores?: ItemProyecto["valores"], cantidad?: number) => {
+  const agregar = useCallback((muebleId: string, valores?: ItemProyecto["valores"], cantidad?: number, extra?: Pick<ItemProyecto, "acabados">) => {
     const def = buscarMueble(muebleId);
     if (!def) return;
-    const nuevo: ItemProyecto = { uid: uid(), muebleId, nombre: def.nombre, valores: { ...valoresPorDefecto(def), ...valores }, cantidad: cantidad ?? 1 };
+    const nuevo: ItemProyecto = { uid: uid(), muebleId, nombre: def.nombre, valores: { ...valoresPorDefecto(def), ...valores }, cantidad: cantidad ?? 1, ...extra };
     setG((s) => {
       const iguales = s.items.filter((i) => i.muebleId === muebleId).length;
       if (iguales > 0) nuevo.nombre = `${def.nombre} ${iguales + 1}`;
