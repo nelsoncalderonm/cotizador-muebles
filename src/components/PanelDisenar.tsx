@@ -7,6 +7,7 @@ import { CONFIG_DEFECTO } from "@/lib/motor/defaults";
 import type { Parametro } from "@/lib/motor/tipos";
 import { VistaMueble } from "./VistaMueble";
 import { DictarVoz } from "./DictarVoz";
+import { FotoReferencia } from "./FotoReferencia";
 import { VisorMueble } from "./VisorMueble";
 
 export function Catalogo({ onElegir }: { onElegir: (id: string) => void }) {
@@ -124,6 +125,7 @@ export function PanelDisenar() {
           )}
         </div>
         {!eligiendo && <DictarVoz />}
+        <FotoReferencia />
         <Catalogo
           onElegir={(id) => {
             agregar(id);
@@ -136,6 +138,7 @@ export function PanelDisenar() {
   return (
     <div className="panel">
       <DictarVoz />
+      <FotoReferencia />
       <div className="chips" role="tablist">
         {items.map((i) => (
           <button key={i.uid} role="tab" aria-selected={i.uid === seleccion} className={`chip${i.uid === seleccion ? " activo" : ""}`} onClick={() => seleccionar(i.uid)}>

@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const VOCABULARIO =
-  "Carpintería en melamina: mueble bajo de cocina, aéreo, closet, ropero, librero, repisa, escritorio, mesa de noche, cajonera, mueble de TV, rack, despensero, zapatero, vanitorio, " +
+  "Carpintería en melamina: mueble bajo de cocina, aéreo, closet, ropero, librero, repisa, escritorio, mesa de noche, cajonera, mueble de TV, rack, despensero, zapatero, vanitorio, aparador, bifé, mesa de centro, repisa flotante, nicho, luz LED, rodachinas, " +
   "entrepaños, zócalo, cajones, puertas, fondo, ancho, alto, centímetros, milímetros, metros, cuerpos, maletero, tubo colgador.";
 
 async function conOpenAI(clave: string, audio: Blob, nombre: string) {

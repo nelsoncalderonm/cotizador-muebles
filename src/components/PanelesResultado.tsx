@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { InputNumero } from "./InputNumero";
+import { useEffect, useMemo, useState } from "react";
+import { perforaciones } from "@/lib/motor/perforaciones";
+import { PlanoPerforacion } from "./PlanoPerforacion";
 import { formatoDinero, mm, useEstado } from "@/lib/estado";
 import { precioHerraje, textoCantos } from "@/lib/motor/proyecto";
 import { LaminaSvg } from "./LaminaSvg";
 import { VistaMueble } from "./VistaMueble";
 import { colorMueble } from "@/lib/colores";
+import { useCotizaciones } from "@/lib/cotizaciones";
 import { useFotos } from "@/lib/fotos";
 import { esPuerta } from "@/lib/motor/constructor";
+import { cuentasActivas, supabase } from "@/lib/supabase";
 import { condiciones, mensajeCliente, numeroCotizacion, pagos, validaHasta } from "@/lib/cotizacion";
 
 function Vacio() {
@@ -60,8 +65,13 @@ export function useAccionesPdf() {
       await compartirPdf(pdfProveedor(resultado, config, taller, cliente, leerFotos().logo), nombreArchivo("orden-de-corte", cliente.proyecto));
     },
     planos: async () => {
-      const { pdfPlanos, compartirPdf } = await import("@/lib/pdf");
-      await compartirPdf(pdfPlanos(resultado, taller, cliente), nombreArchivo("planos", cliente.proyecto));
+      const [{ pdfPlanos, compartirPdf }, { vistaExplotada, codigosMueble }, { leerFotos }] = await Promise.all([import("@/lib/pdf"), import("@/lib/explotada"), import("@/lib/fotos")]);
+      const explotadas: Record<string, string> = {};
+      for (const [i, m] of resultado.muebles.entries()) {
+        const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, i), m.item.acabados, m.item.muebleId).catch(() => null);
+        if (url) explotadas[m.item.uid] = url;
+      }
+      await compartirPdf(pdfPlanos(resultado, taller, cliente, config, explotadas, leerFotos().logo), nombreArchivo("orden-de-produccion", cliente.proyecto));
     },
     /** Arma el PDF de la cotización sin compartirlo (para verlo o enviarlo). */
     docCotizacion: async (detallado: boolean, conTrabajos = true) => {
@@ -88,9 +98,9 @@ export function PanelCortes() {
         Medidas de corte en mm, ya descontando {config.espesorCanto} mm de canto por arista. Total de canto: <b>{mm(resultado.metrosCanto)} m</b>.
       </p>
       {resultado.materiales
-        .filter((m) => resultado.cortes.some((f) => f.material === m.clave))
+        .filter((m) => resultado.cortes.some((f) => f.tablero === m.id))
         .map((m) => (
-          <section key={m.clave} className="bloque">
+          <section key={m.id} className="bloque">
             <h3>{m.nombre}</h3>
             <div className="tabla-cortes">
               <div className="fila cab">
@@ -102,7 +112,7 @@ export function PanelCortes() {
                 <span>Canto</span>
               </div>
               {resultado.cortes
-                .filter((f) => f.material === m.clave)
+                .filter((f) => f.tablero === m.id)
                 .map((f) => (
                   <div className="fila" key={f.codigo}>
                     <span>
@@ -162,16 +172,17 @@ export function PanelLaminas() {
       {resultado.materiales
         .filter((m) => m.laminas.length)
         .map((m) => (
-          <section key={m.clave} className="bloque">
+          <section key={m.id} className="bloque">
             <h3>
               {m.nombre}: {m.laminas.length} lámina{m.laminas.length > 1 ? "s" : ""}
             </h3>
+            {m.veta && <p className="veta-nota">Con veta: las líneas muestran el sentido de la veta (a lo largo de la lámina). No girar las piezas.</p>}
             {m.laminas.map((l) => (
               <figure key={l.numero} className="lamina">
                 <figcaption>
                   Lámina {l.numero} · {l.piezas.length} piezas · <b>{Math.round(l.aprovechamiento * 100)} %</b> aprovechado
                 </figcaption>
-                <LaminaSvg lamina={l} />
+                <LaminaSvg lamina={l} veta={m.veta} />
               </figure>
             ))}
           </section>
@@ -181,12 +192,30 @@ export function PanelLaminas() {
 }
 
 export function PanelArmado() {
-  const { resultado } = useEstado();
+  const { resultado, config } = useEstado();
   const pdf = useAccionesPdf();
   const [sel, setSel] = useState(0);
   const [paso, setPaso] = useState(0);
-  if (!resultado.muebles.length) return <Vacio />;
-  const m = resultado.muebles[Math.min(sel, resultado.muebles.length - 1)];
+  const [todas, setTodas] = useState(false);
+  const [explotada, setExplotada] = useState<{ clave: string; url: string | null } | null>(null);
+  const [verExplotada, setVerExplotada] = useState(false);
+  const m = resultado.muebles[Math.min(sel, Math.max(0, resultado.muebles.length - 1))];
+  const planos = useMemo(() => (m ? perforaciones(m.resultado, config, Number(m.item.valores.fondo ?? 500)) : []), [m, config]);
+  const claveExp = m ? `${m.item.uid}:${JSON.stringify(m.item.valores)}:${JSON.stringify(m.item.acabados)}` : "";
+  useEffect(() => {
+    if (!verExplotada || !m || explotada?.clave === claveExp) return;
+    let vivo = true;
+    (async () => {
+      const { vistaExplotada, codigosMueble } = await import("@/lib/explotada");
+      const idx = resultado.muebles.indexOf(m);
+      const url = await vistaExplotada(m.resultado, Number(m.item.valores.fondo ?? 500), config, codigosMueble(m.resultado, idx), m.item.acabados, m.item.muebleId);
+      if (vivo) setExplotada({ clave: claveExp, url });
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [verExplotada, claveExp, m, config, resultado.muebles, explotada?.clave]);
+  if (!resultado.muebles.length || !m) return <Vacio />;
   const pasos = m.resultado.pasos;
   const p = Math.min(paso, pasos.length - 1);
   const conocidas = new Set(pasos.flatMap((x) => x.piezas));
@@ -197,7 +226,7 @@ export function PanelArmado() {
     <div className="panel">
       <div className="panel-cab">
         <h2>Planos y armado</h2>
-        <BotonPdf principal etiqueta="PDF de planos" generar={pdf.planos} />
+        <BotonPdf principal etiqueta="Orden de producción (PDF)" generar={pdf.planos} />
       </div>
       <div className="chips">
         {resultado.muebles.map((x, i) => (
@@ -213,6 +242,31 @@ export function PanelArmado() {
           </button>
         ))}
       </div>
+      <div className="segmentos vista-armado" role="group" aria-label="Tipo de vista">
+        <button className={!verExplotada ? "activo" : ""} aria-pressed={!verExplotada} onClick={() => setVerExplotada(false)}>
+          Paso a paso
+        </button>
+        <button className={verExplotada ? "activo" : ""} aria-pressed={verExplotada} onClick={() => setVerExplotada(true)}>
+          Vista explotada 3D
+        </button>
+      </div>
+      {verExplotada && (
+        <figure className="explotada">
+          {explotada?.clave === claveExp ? (
+            explotada.url ? (
+              <div className="explotada-scroll">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={explotada.url} alt={`Vista explotada de ${m.item.nombre} con el código de cada pieza y sus herrajes`} />
+              </div>
+            ) : (
+              <p className="hist-nota">Este equipo no puede dibujar en 3D.</p>
+            )
+          ) : (
+            <div className="cargando-3d" aria-label="Dibujando la vista explotada" />
+          )}
+          <figcaption>Cada línea punteada lleva al código de la pieza en la lista de cortes (café) o al herraje (azul). Desliza la imagen hacia los lados para verla completa.</figcaption>
+        </figure>
+      )}
       <div className="editor">
         <div className="editor-vista">
           <VistaMueble vista={m.resultado.vista} visibles={visibles} conocidas={conocidas} resaltar={resaltar} frentes={conFrentes} />
@@ -236,6 +290,32 @@ export function PanelArmado() {
           </div>
         </div>
       </div>
+
+      {planos.length > 0 && (
+        <section className="perf-lista">
+          <div className="panel-cab">
+            <h3>{todas ? "Todas las perforaciones" : "Perforaciones de este paso"}</h3>
+            <button className="btn-texto" onClick={() => setTodas((t) => !t)}>
+              {todas ? "Solo este paso" : `Ver todas (${planos.length} piezas)`}
+            </button>
+          </div>
+          {(() => {
+            const delPaso = planos.filter((x) => resaltar.has(x.piezaId));
+            const lista = todas ? planos : delPaso;
+            if (!lista.length)
+              return <p className="hist-nota">Este paso no lleva perforaciones nuevas. Toca “Ver todas” para ver el taladrado de cada pieza.</p>;
+            return lista.map((x) => (
+              <div key={x.clave}>
+                <h4>
+                  {x.titulo}
+                  {x.veces * m.item.cantidad > 1 ? ` · ${x.veces * m.item.cantidad} iguales` : ""}
+                </h4>
+                <PlanoPerforacion plano={x} />
+              </div>
+            ));
+          })()}
+        </section>
+      )}
     </div>
   );
 }
@@ -271,7 +351,7 @@ function PrecioProveedor({ nombre, cantidad, valor, simbolo, onCambio }: { nombr
         <small>{cantidad}</small>
       </span>
       <div className="input-mm">
-        <input type="number" inputMode="decimal" value={valor || ""} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => onCambio(parseFloat(e.target.value) || 0)} />
+        <InputNumero valor={valor} onCambio={onCambio} vacioSiCero placeholder="0" />
         <em>{simbolo}</em>
       </div>
     </label>
@@ -294,9 +374,8 @@ function BloqueProveedor() {
     "",
     "*Tableros*",
     ...usados.map((m) => {
-      const t = config.materiales[m.clave];
-      const espesor = t.nombre.includes(`${mm(t.espesor)} mm`) ? "" : `, ${mm(t.espesor)} mm`;
-      return `• ${plural(m.laminas.length, "lámina", "láminas")} de ${t.nombre}${espesor} (${mm(t.largoLamina)} × ${mm(t.anchoLamina)} mm)`;
+      const espesor = m.nombre.includes(`${mm(m.espesor)} mm`) ? "" : `, ${mm(m.espesor)} mm`;
+      return `• ${plural(m.laminas.length, "lámina", "láminas")} de ${m.nombre}${espesor} (${mm(m.largoLamina)} × ${mm(m.anchoLamina)} mm)`;
     }),
     "",
     "*Corte y canto*",
@@ -354,15 +433,14 @@ function BloqueProveedor() {
       <p className="nota">Escribe el precio por unidad. La cotización se actualiza sola y los precios quedan guardados para la próxima.</p>
       <div className="lista-proveedor">
         {usados.map((m) => {
-          const t = config.materiales[m.clave];
           return (
             <PrecioProveedor
-              key={m.clave}
-              nombre={`${t.nombre} (por lámina)`}
+              key={m.id}
+              nombre={`${m.nombre} (por lámina)`}
               cantidad={`Necesitas ${plural(m.laminas.length, "lámina", "láminas")}`}
-              valor={t.precioLamina}
+              valor={m.precioLamina}
               simbolo={precios.simbolo}
-              onCambio={(n) => setConfig({ ...config, materiales: { ...config.materiales, [m.clave]: { ...t, precioLamina: n } } })}
+              onCambio={(n) => setConfig({ ...config, preciosTablero: { ...config.preciosTablero, [m.id]: n } })}
             />
           );
         })}
@@ -440,6 +518,12 @@ function HojaCotizacion({ imagenes, sin3d, logo, numero }: { imagenes: Record<st
           </div>
         </div>
       ))}
+      {resultado.transporte > 0 && (
+        <div className="hoja-linea">
+          <span>Transporte / envío</span>
+          <span>{$(resultado.transporte)}</span>
+        </div>
+      )}
       <div className="hoja-total">
         <span>TOTAL</span>
         <b>{$(resultado.total)}</b>
@@ -462,8 +546,17 @@ function HojaCotizacion({ imagenes, sin3d, logo, numero }: { imagenes: Record<st
   );
 }
 
+/** Sube el PDF a la nube y devuelve un link corto que cualquiera con el link puede abrir. */
+async function subirPdf(blob: Blob) {
+  const id = crypto.randomUUID();
+  const { error } = await supabase().storage.from("inner-muebles-cotizaciones").upload(`c/${id}.pdf`, blob, { contentType: "application/pdf", upsert: false });
+  if (error) throw error;
+  return { id, link: `${location.origin}/c/${id}` };
+}
+
 export function PanelCotizar() {
-  const { resultado, precios, cliente, setCliente, taller } = useEstado();
+  const { resultado, precios, cliente, setCliente, taller, items } = useEstado();
+  const { registrar } = useCotizaciones();
   const pdf = useAccionesPdf();
   const [detallado, setDetallado] = useState(false);
   const [conTrabajos, setConTrabajos] = useState(true);
@@ -476,7 +569,6 @@ export function PanelCotizar() {
   const $ = (n: number) => formatoDinero(n, precios);
   const mensaje = mensajeCliente(resultado, precios, cliente, taller);
   const tel = cliente.telefono.replace(/\D/g, "");
-  const enlaceChat = `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`;
   const { pct, anticipo, saldo } = pagos(resultado.total, cliente);
   const piezas = resultado.muebles.reduce((s, m) => s + m.item.cantidad, 0);
   const faltaTaller = !taller.nombre || !taller.telefono;
@@ -497,14 +589,14 @@ export function PanelCotizar() {
     }
   }
 
-  async function enviar() {
+  /** Comparte el archivo con el menú del celular (solo muestra chats ya guardados). */
+  async function compartir() {
     setEnvio("armando");
     try {
       const { doc, nombre } = await pdf.docCotizacion(detallado, conTrabajos);
       const archivo = new File([doc.output("blob")], nombre, { type: "application/pdf" });
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (esMovil && nav.canShare?.({ files: [archivo] })) {
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && nav.canShare?.({ files: [archivo] })) {
         try {
           await navigator.share({ files: [archivo], text: mensaje, title: nombre });
           setEnvio("enviado");
@@ -513,11 +605,41 @@ export function PanelCotizar() {
         }
         return;
       }
-      // computador: se descarga el PDF y se abre el chat con el mensaje listo para adjuntarlo
       doc.save(nombre);
-      window.open(enlaceChat, "_blank", "noreferrer");
+      setEnvio("listo");
+    } catch {
+      setEnvio("error");
+    }
+  }
+
+  /** Abre el chat con el número del cliente (aunque no esté guardado) con el mensaje y el link al PDF. */
+  async function enviar() {
+    if (!cuentasActivas) return compartir();
+    // la pestaña se abre antes de subir el PDF para que el celular no la bloquee
+    const ventana = window.open("", "_blank");
+    setEnvio("armando");
+    try {
+      const { doc } = await pdf.docCotizacion(detallado, conTrabajos);
+      const { id, link } = await subirPdf(doc.output("blob"));
+      // queda en "Mis cotizaciones"; si falla, igual se envía
+      await registrar({
+        id,
+        numero,
+        cliente: cliente.cliente,
+        telefono: tel,
+        proyecto: cliente.proyecto,
+        total: resultado.total,
+        anticipo: pct > 0 && pct < 100 ? anticipo : 0,
+        moneda: { simbolo: precios.simbolo, decimales: precios.decimales },
+        datos: { items, cliente },
+      }).catch(() => {});
+      const texto = `${mensaje}\n\n📄 Cotización en PDF: ${link}`;
+      const destino = `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
+      if (ventana) ventana.location.href = destino;
+      else location.href = destino;
       setEnvio("enviado");
     } catch {
+      ventana?.close();
       setEnvio("error");
     }
   }
@@ -589,6 +711,11 @@ export function PanelCotizar() {
           </label>
         </div>
         <label className="campo">
+          <span>Transporte o envío</span>
+          <InputNumero valor={cliente.transporte} onCambio={(n) => setCliente({ ...cliente, transporte: n })} vacioSiCero placeholder="0 = no se cobra aparte" />
+          <small>Se suma al total tal cual, sin utilidad, y sale como línea aparte en el PDF.</small>
+        </label>
+        <label className="campo">
           <span>Notas para el cliente</span>
           <textarea rows={2} value={cliente.notas} placeholder="Incluye instalación y transporte." onChange={(e) => setCliente({ ...cliente, notas: e.target.value })} />
         </label>
@@ -638,7 +765,7 @@ export function PanelCotizar() {
             {mensaje.split("\n").map((l, i) => (
               <p key={i}>{l.split(/(\*[^*]+\*)/g).map((t, j) => (t.startsWith("*") && t.endsWith("*") && t.length > 2 ? <b key={j}>{t.slice(1, -1)}</b> : t))}</p>
             ))}
-            <span className="cot-adjunto">PDF · Cotización con el diseño en 3D</span>
+            <span className="cot-adjunto">{cuentasActivas ? "📄 Cotización en PDF: link para abrirla" : "PDF · Cotización con el diseño en 3D"}</span>
           </div>
         )}
         <div className="cot-msg-acciones">
@@ -656,14 +783,20 @@ export function PanelCotizar() {
       <div className="cot-enviar">
         <button className="btn btn-enviar" onClick={enviar} disabled={envio === "armando"} aria-busy={envio === "armando"}>
           {envio === "armando" && <i className="girando" aria-hidden />}
-          {envio === "armando" ? "Preparando el PDF…" : "Enviar cotización por WhatsApp"}
+          {envio === "armando" ? "Preparando el PDF…" : `Enviar por WhatsApp${cliente.cliente ? ` a ${cliente.cliente.split(" ")[0]}` : ""}`}
         </button>
-        {envio === "enviado" && <p className="cot-ok">Listo. Si WhatsApp no adjuntó el PDF, arrástralo o adjúntalo desde Descargas.</p>}
-        {envio === "error" && <p className="cot-error">No se pudo preparar el PDF. Inténtalo de nuevo.</p>}
-        <a className="btn-sec" href={enlaceChat} target="_blank" rel="noreferrer">
-          Solo abrir el chat{cliente.cliente ? ` con ${cliente.cliente.split(" ")[0]}` : ""} con el mensaje
-        </a>
-        {!tel && <p className="nota">Sin número, WhatsApp te deja elegir el contacto.</p>}
+        {cuentasActivas && (
+          <p className="nota">
+            {tel ? "Funciona aunque no tengas el número guardado." : "Escribe el WhatsApp del cliente arriba, o elige el chat al abrir WhatsApp."} El mensaje lleva un link para abrir el PDF.
+          </p>
+        )}
+        {envio === "enviado" && <p className="cot-ok">Listo, revisa WhatsApp y toca enviar.</p>}
+        {envio === "error" && <p className="cot-error">No se pudo preparar el envío. Revisa tu internet e inténtalo de nuevo.</p>}
+        {cuentasActivas && (
+          <button className="btn-sec" onClick={compartir} disabled={envio === "armando"}>
+            Compartir el archivo PDF (contactos guardados)
+          </button>
+        )}
       </div>
 
       <details className="bloque cot-costos">
@@ -698,6 +831,12 @@ export function PanelCotizar() {
             <span>Utilidad ({precios.margenPorcentaje} %)</span>
             <span className="num">{$(resultado.utilidad)}</span>
           </div>
+          {resultado.transporte > 0 && (
+            <div className="fila">
+              <span>Transporte / envío (sin utilidad)</span>
+              <span className="num">{$(resultado.transporte)}</span>
+            </div>
+          )}
           {resultado.impuesto > 0 && (
             <div className="fila">
               <span>Impuesto ({precios.impuestoPorcentaje} %)</span>
@@ -715,7 +854,7 @@ export function PanelCotizar() {
 
       <div className="acciones apiladas">
         <BotonPdf etiqueta="PDF de cortes para el proveedor" generar={pdf.proveedor} />
-        <BotonPdf etiqueta="PDF de planos de armado" generar={pdf.planos} />
+        <BotonPdf etiqueta="Orden de producción (PDF)" generar={pdf.planos} />
       </div>
     </div>
   );

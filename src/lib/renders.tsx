@@ -3,6 +3,7 @@
 
 import { createRoot } from "react-dom/client";
 import { Vista3D } from "@/components/Vista3D";
+import { piezasInterior } from "./motor/interior";
 import { ACABADOS_DEFECTO } from "./acabados";
 import type { Escenario } from "./escenarios";
 import { modelo3d } from "./motor/modelo3d";
@@ -41,7 +42,7 @@ async function dibujar(m: Mueble, config: Configuracion, p: ReturnType<typeof pr
     let capturar: (() => Blob | null) | null = null;
     raiz.render(
       <Vista3D
-        modelo={modelo3d(m.resultado, fondo, config)}
+        modelo={modelo3d(m.resultado, fondo, config, piezasInterior(m.resultado, m.item.muebleId, m.item.acabados))}
         acabados={m.item.acabados ?? ACABADOS_DEFECTO}
         abierto={false}
         escenario={p.escenario}

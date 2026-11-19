@@ -4,7 +4,7 @@
 import { bisagrasPorPuerta, esPuerta as idPuerta } from "./constructor";
 import type { Configuracion, ResultadoMueble } from "./tipos";
 
-export type TipoBloque = "cuerpo" | "frente" | "fondo" | "metal";
+export type TipoBloque = "cuerpo" | "interior" | "frente" | "fondo" | "metal" | "luz";
 
 export interface Bloque {
   piezaId: string;
@@ -31,7 +31,7 @@ export interface Modelo3D {
 
 const JALADERA = { largo: 128, grosor: 12, salida: 28 };
 
-export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion): Modelo3D {
+export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion, interior: Set<string> = new Set()): Modelo3D {
   const e = cfg.materiales.cuerpo.espesor;
   const eF = cfg.materiales.frente.espesor;
   const eFondo = cfg.materiales.fondo.espesor;
@@ -49,6 +49,16 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
         break;
       case "pata":
         for (const z of [60, F - 60]) bloques.push({ piezaId: "pata", tipo: "metal", forma: "cilindro_v", x: r.x, y: r.y, z: z - r.w / 2, w: r.w, h: r.h, d: r.w });
+        break;
+      case "led":
+        // perfil de aluminio con la cinta encendida, pegado bajo la superficie cerca del frente
+        bloques.push({ piezaId: "led", tipo: "luz", forma: "caja", x: r.x, y: r.y - 2, z: F - 50, w: r.w, h: 12, d: 20 });
+        break;
+      case "rodachina":
+        for (const z of [35, F - 35]) {
+          bloques.push({ piezaId: "rodachina", tipo: "metal", forma: "cilindro_h", x: r.x + r.w / 2 - 11, y: r.y, z: z - 22, w: 22, h: r.h - 8, d: 44 });
+          bloques.push({ piezaId: "rodachina_base", tipo: "metal", forma: "caja", x: r.x, y: r.y + r.h - 8, z: z - r.w / 2, w: r.w, h: 8, d: r.w });
+        }
         break;
       case "tubo":
         bloques.push({ piezaId: "tubo", tipo: "metal", forma: "cilindro_h", x: r.x, y: r.y, z: F / 2 - 10, w: r.w, h: 20, d: 20 });
@@ -139,6 +149,11 @@ export function modelo3d(res: ResultadoMueble, fondo: number, cfg: Configuracion
           caja(z0, F - z0);
         }
     }
+  }
+  // partes que no se ven en melamina blanca (la caja del cajón en 3D representa costados y contras)
+  if (interior.size) {
+    const cajonesBlancos = [...interior].some((id) => /_costado$/.test(id));
+    for (const b of bloques) if (b.tipo === "cuerpo" && (interior.has(b.piezaId) || (b.piezaId === "cajon_caja" && cajonesBlancos))) b.tipo = "interior";
   }
   return { bloques, ancho: res.vista.ancho, alto: res.vista.alto, fondo: F + eF + JALADERA.salida };
 }

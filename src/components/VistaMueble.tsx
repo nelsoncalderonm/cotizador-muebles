@@ -70,8 +70,8 @@ export function VistaMueble({ vista, cotas = true, frentes = true, visibles = nu
               <line x1={c.x1 + nx * fs * 0.2} y1={Y(c.y1 + ny * fs * 0.2)} x2={p1.x + nx * t} y2={p1.y - ny * t} vectorEffect="non-scaling-stroke" />
               <line x1={c.x2 + nx * fs * 0.2} y1={Y(c.y2 + ny * fs * 0.2)} x2={p2.x + nx * t} y2={p2.y - ny * t} vectorEffect="non-scaling-stroke" />
               <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} vectorEffect="non-scaling-stroke" />
-              <line x1={p1.x - t * (vertical ? 1 : 0.7)} y1={p1.y + t * (vertical ? 0.7 : 1)} x2={p1.x + t * (vertical ? 1 : 0.7)} y2={p1.y - t * (vertical ? 0.7 : 1)} vectorEffect="non-scaling-stroke" />
-              <line x1={p2.x - t * (vertical ? 1 : 0.7)} y1={p2.y + t * (vertical ? 0.7 : 1)} x2={p2.x + t * (vertical ? 1 : 0.7)} y2={p2.y - t * (vertical ? 0.7 : 1)} vectorEffect="non-scaling-stroke" />
+              <line className="tope" x1={p1.x - t * (vertical ? 1 : 0.7)} y1={p1.y + t * (vertical ? 0.7 : 1)} x2={p1.x + t * (vertical ? 1 : 0.7)} y2={p1.y - t * (vertical ? 0.7 : 1)} vectorEffect="non-scaling-stroke" />
+              <line className="tope" x1={p2.x - t * (vertical ? 1 : 0.7)} y1={p2.y + t * (vertical ? 0.7 : 1)} x2={p2.x + t * (vertical ? 1 : 0.7)} y2={p2.y - t * (vertical ? 0.7 : 1)} vectorEffect="non-scaling-stroke" />
               <text
                 x={mx}
                 y={my}
