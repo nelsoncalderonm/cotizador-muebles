@@ -10,14 +10,18 @@ import { PRECIO, PRECIO_PRIMER_MES } from "@/lib/oferta";
 const PASOS = [
   { n: "1", t: "Mide", d: "Toma ancho, alto y fondo en la obra. Nada más." },
   { n: "2", t: "Dicta o escribe", d: "“Bajo de cocina de 80 con dos puertas”. La app llena todo sola." },
-  { n: "3", t: "Envía", d: "Cotización al cliente y orden de corte al proveedor, en PDF, por WhatsApp." },
+  { n: "3", t: "Envía", d: "Cotización al cliente, orden de corte al proveedor y orden de producción a tu operario, en PDF." },
 ];
 
 const BENEFICIOS = [
   { t: "Lista de cortes exacta", d: "Cada pieza con su medida de corte, cantidad y qué cantos lleva. Sin errores de lápiz." },
   { t: "Láminas optimizadas", d: "Acomoda las piezas en la lámina para gastar menos tablero. Sabes cuántas comprar." },
   { t: "Precio en tiempo real", d: "Con TUS precios de tablero, canto y herrajes. Cambias una medida y el precio cambia al instante." },
-  { t: "Planos paso a paso", d: "Vistas con medidas y el orden de armado para tu ayudante." },
+  { t: "Planos paso a paso", d: "Vistas con medidas totales e interiores, vista explotada en 3D y el orden de armado para tu ayudante." },
+  { t: "Perforaciones y tarugos", d: "Dónde va cada bisagra, tarugo y soporte, con qué broca, a qué distancia del borde y a qué profundidad." },
+  { t: "Veta siempre vertical", d: "En melaminas de madera, todas las piezas salen con la veta hacia arriba. El proveedor ve el sentido dibujado en cada lámina." },
+  { t: "Interior en melamina blanca", d: "Lo que no se ve (cajones por dentro, entrepaños detrás de puertas) sale en blanco, más barato. Cada color en sus propias láminas." },
+  { t: "Clientes y seguimiento", d: "Cada cliente con sus proyectos. Te avisa cuando abre la cotización y te recuerda a quién escribirle hoy." },
   { t: "PDF para el proveedor", d: "La orden de corte lista para mandar al depósito que te corta y cantea." },
   { t: "Desde el celular", d: "Hecho para usarse en la obra, con una mano. También en el computador." },
 ];
@@ -29,6 +33,8 @@ const PANTALLAS = [
   { src: "/app/cortes.webp", t: "La lista de cortes sale sola", d: "Cada pieza con su medida de corte, ya descontado el canto." },
   { src: "/app/laminas.webp", t: "Sabes cuántas láminas comprar", d: "Las piezas acomodadas en la lámina, listas para el depósito." },
   { src: "/app/armado.webp", t: "Tu ayudante sabe cómo armarlo", d: "Plano con medidas y el armado paso a paso." },
+  { src: "/app/proyectos.webp", t: "Cada cliente con sus trabajos", d: "La cocina, el clóset y el baño de un mismo cliente, guardados aparte." },
+  { src: "/app/clientes.webp", t: "No se te enfría ningún cliente", d: "Te avisa cuando abre la cotización y a quién escribirle hoy." },
 ];
 
 const CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_2zkI0jM7sJ3yYe3PzFEgTYfZKSN";
@@ -46,7 +52,7 @@ function FotoPersona({ f, sizes, prioridad }: { f: { src: string; alt: string };
   return <Image src={f.src} alt={f.alt} width={1024} height={1280} sizes={sizes} priority={prioridad} />;
 }
 
-const CATALOGO = ["Bajos de cocina", "Aéreos de cocina", "Closets y roperos", "Libreros y repisas", "Escritorios", "Mesas de noche", "Cajoneras"];
+const CATALOGO = ["Bajos de cocina", "Aéreos de cocina", "Despenseros", "Closets y roperos", "Zapateros", "Libreros y repisas", "Muebles de TV", "Escritorios", "Mesas de noche", "Cajoneras", "Aparadores", "Muebles de baño"];
 
 const FAQ = [
   {
@@ -62,7 +68,9 @@ const FAQ = [
   { p: "¿Necesito saber de computadores?", r: "No. Si mandas notas de voz por WhatsApp, puedes usarla. Dictas “bajo de cocina de 80 con dos puertas” y la app llena todo. La primera vez te guía paso a paso." },
   { p: "¿Sirve para mi país?", r: "Sí. Eliges tu país y la app pone la moneda y precios de referencia que luego ajustas. Funciona en toda Latinoamérica." },
   { p: "¿Funciona en mi celular?", r: "Sí, en cualquier celular con internet, Android o iPhone, y también en el computador. No hay que instalar nada: se abre en el navegador y la puedes dejar en la pantalla de inicio como una app." },
-  { p: "¿Qué pasa con mis datos si cambio de celular?", r: "Entras con tu correo desde cualquier equipo. Tus cotizaciones y precios quedan guardados en el celular donde trabajas; si cambias de equipo, escríbenos y te ayudamos a pasarlos." },
+  { p: "¿Qué pasa con mis datos si cambio de celular?", r: "Nada se pierde. Tus proyectos, clientes, precios y cotizaciones se guardan en tu cuenta. Entras con tu correo desde otro celular o el computador y está todo." },
+  { p: "¿Mi operario va a entender los planos?", r: "Sí. La orden de producción trae cada pieza con su código, el plano con medidas, la vista explotada en 3D con líneas que señalan cada pieza y herraje, y dónde perforar con qué broca y a qué profundidad." },
+  { p: "¿Puedo cotizar un mueble que el cliente vio en una foto?", r: "Sí. Tomas o subes la foto y la app busca el mueble más parecido de su catálogo, con medidas y colores estimados. Tú revisas las medidas antes de cotizar." },
   { p: "¿Cómo pago?", r: "Con tarjeta débito o crédito, y en muchos países también con medios locales como PSE o Efecty. El pago lo procesa Hotmart, una plataforma segura usada por miles de negocios en Latinoamérica." },
   { p: "¿Cómo entro después de pagar?", r: "Abres la app, creas tu cuenta con el mismo correo con el que pagaste y listo. Te toma un minuto." },
   { p: "¿Puedo cancelar cuando quiera?", r: "Sí. Es mensual, sin contratos ni permanencia. Cancelas desde Hotmart y conservas el acceso hasta el final del mes que pagaste." },
@@ -172,7 +180,7 @@ export default function Landing() {
       <section className="ld-foto" aria-labelledby="ld-foto-t">
         <picture>
           <source type="image/webp" srcSet="/fotos/carpintero-midiendo-900.webp 900w, /fotos/carpintero-midiendo-1800.webp 1800w" sizes="100vw" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img
             src="/fotos/carpintero-midiendo-900.jpg"
             srcSet="/fotos/carpintero-midiendo-900.jpg 900w, /fotos/carpintero-midiendo-1800.jpg 1800w"
@@ -264,7 +272,48 @@ export default function Landing() {
           <div>
             <p className="ld-eyebrow">Planos de fabricación</p>
             <h2>Planos con medidas y armado paso a paso</h2>
-            <p className="ld-sub">Cada mueble trae su plano con cotas, despiece y el orden de armado. Tu ayudante sabe qué hacer sin que estés encima.</p>
+            <p className="ld-sub">Cada mueble trae su plano con medidas totales e interiores, despiece y el orden de armado. Tu ayudante sabe qué hacer sin que estés encima.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="ld-sec ld-sec-claro" aria-labelledby="ld-prod-t">
+        <div className="ld-wrap ld-split">
+          <div>
+            <p className="ld-eyebrow">Orden de producción</p>
+            <h2 id="ld-prod-t">Tu operario sabe dónde va cada pieza y dónde perforar</h2>
+            <p className="ld-sub">Un PDF para el taller con todo lo que necesita, sin que tengas que explicarle nada.</p>
+            <ul className="ld-lista ld-lista-clara">
+              <li>Vista explotada en 3D: una línea punteada lleva a cada pieza y a cada herraje</li>
+              <li>Bisagras, tarugos y soportes con su broca, distancia al borde y profundidad</li>
+              <li>Herrajes para revisar antes de empezar y control de cada etapa con firma</li>
+            </ul>
+          </div>
+          <div className="ld-produccion">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/app/explotada.webp" alt="Vista explotada de un clóset con líneas punteadas al código de cada pieza y herraje" width={1250} height={600} loading="lazy" decoding="async" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/app/perforaciones.webp" alt="Plano de perforaciones de los laterales con tarugos, bisagras y soportes acotados" width={1250} height={840} loading="lazy" decoding="async" />
+            <small>Páginas reales de la orden de producción</small>
+          </div>
+        </div>
+      </section>
+
+      <section className="ld-sec" aria-labelledby="ld-foto-ref-t">
+        <div className="ld-wrap ld-split ld-split-inv">
+          <figure className="ld-foto-ref">
+            <div className="ld-pantalla-marco">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/app/foto-referencia.webp" alt="Pantalla de la app proponiendo un mueble de TV a partir de una foto de referencia" width={600} height={1298} loading="lazy" decoding="async" />
+            </div>
+          </figure>
+          <div>
+            <p className="ld-eyebrow">Nuevo</p>
+            <h2 id="ld-foto-ref-t">¿El cliente te muestra una foto? Cópiala.</h2>
+            <p className="ld-sub">
+              Tomas o subes la foto del mueble que quiere y la app arma el más parecido de su catálogo, con medidas y colores. Tú revisas y cotizas en minutos.
+            </p>
+            <Cta />
           </div>
         </div>
       </section>
@@ -284,7 +333,7 @@ export default function Landing() {
           <figure className="ld-ejemplo">
             <picture>
               <source type="image/webp" srcSet="/fotos/ejemplo-cotizacion.webp" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src="/fotos/ejemplo-cotizacion.png" alt="Ejemplo de cotización en PDF con el mueble en 3D, medidas y total" loading="lazy" decoding="async" />
             </picture>
             <figcaption>Ejemplo real generado con la app</figcaption>
